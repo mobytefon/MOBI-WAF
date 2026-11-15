@@ -4154,6 +4154,7 @@ const spec = {
           request_body_limit: { type: "integer", minimum: 1024, maximum: 1073741824, description: "SecRequestBodyLimit in bytes. Coraza rejects values above 1 GiB. Unset inherits Coraza's default (12.5 MiB when the OWASP CRS is loaded, else 128 MiB)" },
           request_body_in_memory_limit: { type: "integer", minimum: 1024, maximum: 1073741824, description: "SecRequestBodyInMemoryLimit in bytes; must not exceed request_body_limit" },
           request_body_limit_action: { type: "string", enum: ["Reject", "ProcessPartial"], description: "SecRequestBodyLimitAction — reject oversized bodies or inspect the buffered part and forward the rest" },
+          log_request_body: { type: "boolean", description: "Keep the request body with WAF events (credentials redacted, files left out, at most 32 KiB). Unset means true. Applies to every host" },
         },
         required: ["enabled", "mode", "load_owasp_crs", "custom_directives"],
       },

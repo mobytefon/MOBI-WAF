@@ -15,6 +15,8 @@ import { suggestionScope, WafExclusionBatchDialog } from "../waf/WafExclusionBat
 import { wafAuditRecordAction } from "./actions";
 import { CdnWarning, type BlockTarget } from "./BlockSourceDialog";
 import { analyticsHref, curlCommand, eventActionLabel, eventExplanation, splitMatchedData, visibleText, type CurlRequest, type SecurityQuery } from "./security-view";
+import { shownValue } from "./request-view";
+import { FullHttpRequest, MatchedValue, useWafRequest, type WafRequestState } from "./WafRequestDetail";
 
 export type EventDetailContext = {
   query: SecurityQuery;
@@ -156,12 +158,13 @@ function sentence(text: string): string {
 export type LoadState = { status: "loading" } | { status: "error"; error: string } | { status: "ready"; explanation: WafEventExplanation };
 
 /** One rule that matched: its points, what it checks, and what it found where. */
-function MatchedRule({ rule }: { rule: WafEventExplanation["rules"][number] }) {
+function MatchedRule({ rule, request }: { rule: WafEventExplanation["rules"][number]; request?: WafRequestState }) {
   const [open, setOpen] = useState(false);
   const split = rule.matchedData ? splitMatchedData(rule.matchedData) : null;
   const variable = split?.variable ?? rule.matchedVariable;
   const found = split ? visibleText(split.data) : null;
-  const value = split?.value ? visibleText(split.value) : null;
+  const captured = request?.status === "ready" ? request.view.capture?.matchedValues : null;
+  const shown = shownValue({ ruleId: rule.ruleId, variable, found: split?.data ?? null, logged: split?.value ?? null, matchedData: rule.matchedData, captured, message: rule.message });
   const points = rule.anomalyPoints !== null ? (rule.countedInScore ? `+${rule.anomalyPoints}` : "0") : rule.disruptive ? "deny" : "·";
   return (
     <li className="grid grid-cols-[44px_minmax(0,1fr)] gap-x-2.5 border-b border-line py-2.5 last:border-b-0">
@@ -185,14 +188,14 @@ function MatchedRule({ rule }: { rule: WafEventExplanation["rules"][number] }) {
                 in <span className="num">{variable}</span>
               </>
             )}
-            {value && value !== found && (
+            {shown && (
               <button type="button" className="text-brand underline-offset-4 hover:underline" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
                 {open ? "Hide the value" : "Show the value"}
               </button>
             )}
           </span>
         )}
-        {open && value && <Pre className="max-h-40">{value}</Pre>}
+        {open && shown && <MatchedValue shown={shown} />}
       </div>
     </li>
   );
@@ -228,11 +231,25 @@ function WafEventDetail({ event, context }: { event: SecurityEvent; context: Eve
     };
   }, [event.eventId, reload]);
 
-  return <WafEventView event={event} context={context} state={state} onExcluded={() => setReload((n) => n + 1)} />;
+  const fullRequest = useWafRequest(event.eventId);
+  return <WafEventView event={event} context={context} state={state} fullRequest={fullRequest} onExcluded={() => setReload((n) => n + 1)} />;
 }
 
 /** The WAF event detail for a loaded (or failed) explanation; split from the loading so it renders in tests. */
-export function WafEventView({ event, context, state, onExcluded }: { event: SecurityEvent; context: EventDetailContext; state: LoadState; onExcluded: () => void }) {
+export function WafEventView({
+  event,
+  context,
+  state,
+  fullRequest,
+  onExcluded,
+}: {
+  event: SecurityEvent;
+  context: EventDetailContext;
+  state: LoadState;
+  /** The full request, loaded apart from the explanation. */
+  fullRequest?: WafRequestState;
+  onExcluded: () => void;
+}) {
   const [batchOpen, setBatchOpen] = useState(false);
   const explanation = state.status === "ready" ? state.explanation : null;
   const blocked = explanation ? explanation.blocked : event.blocked;
@@ -330,7 +347,7 @@ export function WafEventView({ event, context, state, onExcluded }: { event: Sec
           <Heading>{matched.length === 1 ? "The rule that matched" : `The ${matched.length} rules that matched`}</Heading>
           <ol className="m-0 mt-1 flex list-none flex-col p-0">
             {matched.map((rule, index) => (
-              <MatchedRule key={`${rule.ruleId}-${index}`} rule={rule} />
+              <MatchedRule key={`${rule.ruleId}-${index}`} rule={rule} request={fullRequest} />
             ))}
             {explanation.decidingRule && explanation.decidingRule.kind !== "attack" && explanation.decidingRule.kind !== "custom" && (
               <li className="grid grid-cols-[44px_minmax(0,1fr)] gap-x-2.5 py-2.5 text-[13px]">
@@ -344,6 +361,8 @@ export function WafEventView({ event, context, state, onExcluded }: { event: Sec
           </ol>
         </section>
       )}
+
+      {fullRequest && <FullHttpRequest state={fullRequest} />}
 
       <div className="flex flex-col gap-2 border-t border-line pt-3.5">
         {cdnOf(context, event.ip) && <CdnWarning ip={event.ip} cdn={cdnOf(context, event.ip)!} />}

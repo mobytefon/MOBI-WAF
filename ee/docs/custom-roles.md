@@ -233,6 +233,7 @@ Every guard of a route, page or server action and the permission it checks. Rout
 | `app/(dashboard)/saml/page.tsx` | `SamlPage` | `sso:read` |
 | `app/(dashboard)/scim/page.tsx` | `ScimPage` | `scim:read` |
 | `app/(dashboard)/security/actions.ts` | `wafAuditRecordAction` | `waf:read` |
+| `app/(dashboard)/security/request-actions.ts` | `wafRequestAction` | `waf:read` |
 | `app/(dashboard)/security/page.tsx` | `SecurityEventsPage` | `waf:read` |
 | `app/(dashboard)/settings/actions.ts` | `updateGeneralSettingsActionUnlocked` | `settings:write` |
 | `app/(dashboard)/settings/actions.ts` | `updateAcmeSettingsActionUnlocked` | `settings:write` |

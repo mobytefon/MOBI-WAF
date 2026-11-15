@@ -805,6 +805,7 @@ function resolveWaf(
         request_body_limit: host.request_body_limit,
         request_body_in_memory_limit: host.request_body_in_memory_limit,
         request_body_limit_action: host.request_body_limit_action,
+        log_request_body: global?.log_request_body,
       },
       globalDirectives: null,
     };
@@ -833,6 +834,7 @@ function resolveWaf(
           host.request_body_in_memory_limit ?? global.request_body_in_memory_limit,
         request_body_limit_action:
           host.request_body_limit_action ?? global.request_body_limit_action,
+        log_request_body: global.log_request_body,
       },
       globalDirectives: global.custom_directives || null,
     };
@@ -849,6 +851,7 @@ function resolveWaf(
         request_body_limit: host.request_body_limit,
         request_body_in_memory_limit: host.request_body_in_memory_limit,
         request_body_limit_action: host.request_body_limit_action,
+        log_request_body: global?.log_request_body,
       },
       globalDirectives: null,
     };
@@ -1089,7 +1092,9 @@ export function buildWafHandler(
     // Part H carries the matched rules, which waf-log-parser reads to attribute
     // each event to a rule id/message/severity. Bodies (I, J, E) and intermediate
     // response headers (D) are omitted to avoid logging multi-MB payloads.
-    'SecAuditLogParts ABFHZ',
+    // Part C (the request body) unless waf.log_request_body is false; the log
+    // parser cleans and cuts it before storing (waf-request-capture.ts).
+    `SecAuditLogParts ${waf.log_request_body === false ? 'ABFHZ' : 'ABCFHZ'}`,
     'SecResponseBodyAccess Off',
   );
 
