@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { insertWafEvents, type WafEventRow } from './clickhouse/client';
 import { readLines } from './log-read';
 import { first as dbFirst } from '@/src/lib/db/ops';
+import { captureAuditRequest } from './waf-request-capture';
 
 const AUDIT_LOG = '/logs/waf-audit.log';
 const RULES_LOG = '/logs/waf-rules.log';
@@ -504,6 +505,8 @@ export function redactAuditEntry(entry: unknown): unknown {
     }
   }
   redactMessages(copy.messages, credentialed);
+  // The request body (audit part C): cleaned, cut, and the matched values kept.
+  captureAuditRequest(copy as Record<string, unknown>, isCredentialName);
   return copy;
 }
 

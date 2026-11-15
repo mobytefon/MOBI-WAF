@@ -347,11 +347,13 @@ function validateWaf(value: Record<string, unknown>, previous: PreviousWafSettin
       "request_body_limit",
       "request_body_in_memory_limit",
       "request_body_limit_action",
+      "log_request_body",
       ...WAF_TUNING_KEYS,
     ],
     "WAF settings"
   );
   booleanValue(required(value, "enabled", "WAF settings"), "waf.enabled");
+  if (value.log_request_body !== undefined) booleanValue(value.log_request_body, "waf.log_request_body");
   const mode = required(value, "mode", "WAF settings");
   if (mode !== "Off" && mode !== "On" && mode !== "DetectionOnly") {
     invalid("waf.mode must be Off, On, or DetectionOnly");

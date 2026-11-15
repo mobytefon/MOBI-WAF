@@ -44,6 +44,7 @@ const INPUT_KEYS = [
   "request_body_limit",
   "request_body_in_memory_limit",
   "request_body_limit_action",
+  "log_request_body",
   ...WAF_TUNING_KEYS,
 ] as const;
 

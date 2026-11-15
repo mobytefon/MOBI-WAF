@@ -66,9 +66,15 @@ describe('buildWafHandler — SecRuleEngine mode sanitising', () => {
     const out = directives('On');
     // Part H carries the matched rules that waf-log-parser reads for rule
     // attribution; losing it silently strips rule id/message/severity.
-    expect(out).toContain('SecAuditLogParts ABFHZ');
+    // Part C (the request body) unless log_request_body is false.
+    expect(out).toContain('SecAuditLogParts ABCFHZ');
     expect(out).toContain('SecAuditLog /logs/waf-audit.log');
     expect(out).toContain('SecAuditLogFormat JSON');
+  });
+
+  it('leaves the request body out of the audit log when log_request_body is false', () => {
+    const handler = buildWafHandler({ ...baseWaf, load_owasp_crs: false, log_request_body: false });
+    expect(handler.directives).toContain('SecAuditLogParts ABFHZ');
   });
 });
 

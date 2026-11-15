@@ -451,6 +451,9 @@ export type WafSettings = WafTuningSettings & {
   // ProcessPartial inspects the leading bytes and forwards the rest instead of
   // rejecting oversized uploads outright.
   request_body_limit_action?: 'Reject' | 'ProcessPartial';
+  // Whether WAF events keep the request body (audit log part C); unset is on.
+  // Global only: every host takes it from here (waf-request-capture.ts).
+  log_request_body?: boolean;
 };
 
 export async function getWafSettings(): Promise<WafSettings | null> {

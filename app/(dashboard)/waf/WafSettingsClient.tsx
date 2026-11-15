@@ -52,6 +52,7 @@ type FormState = {
   bodyLimit: string;
   bodyMemory: string;
   bodyAction: BodyAction;
+  logBodies: boolean;
   customRules: string;
 };
 
@@ -67,6 +68,7 @@ const FIELD_LABELS: Record<keyof FormState, string> = {
   bodyLimit: "largest body inspected",
   bodyMemory: "body kept in memory",
   bodyAction: "over-the-limit action",
+  logBodies: "request body logging",
   customRules: "custom rules",
 };
 
@@ -85,6 +87,7 @@ function formFromSettings(settings: WafSettings | null): FormState {
     bodyLimit: bytesToMib(settings?.request_body_limit),
     bodyMemory: bytesToMib(settings?.request_body_in_memory_limit),
     bodyAction: settings?.request_body_limit_action ?? "",
+    logBodies: settings?.log_request_body !== false,
     customRules: settings?.custom_directives ?? "",
   };
 }
@@ -192,6 +195,7 @@ export default function WafSettingsClient({ data }: { data: WafSettingsPageData 
         request_body_limit: typeof bodyLimit === "number" ? bodyLimit * BYTES_PER_MIB : undefined,
         request_body_in_memory_limit: typeof bodyMemory === "number" ? bodyMemory * BYTES_PER_MIB : undefined,
         request_body_limit_action: form.bodyAction || undefined,
+        log_request_body: form.logBodies,
       });
       if (!result.ok) {
         setError(result.error);
@@ -520,6 +524,15 @@ export default function WafSettingsClient({ data }: { data: WafSettingsPageData 
               </div>
             </fieldset>
             <span className="text-xs text-muted-foreground">{BODY_HELP[form.bodyAction]}</span>
+            <label className="flex items-start gap-2.5 border-t pt-3.5 text-sm">
+              <Switch checked={form.logBodies} onCheckedChange={(value) => set("logBodies", value)} disabled={readOnly} aria-label="Keep request bodies with WAF events" className="mt-0.5" />
+              <span className="flex flex-col gap-0.5">
+                <span className="font-semibold">Keep request bodies with WAF events</span>
+                <span className="text-xs text-muted-foreground">
+                  Shown in the event&apos;s full HTTP request: up to 32 KiB, passwords and tokens redacted, uploaded files left out.
+                </span>
+              </span>
+            </label>
           </section>
         </div>
 

@@ -19,6 +19,7 @@ vi.mock('@/app/(dashboard)/waf/actions', () => ({
   createWafExclusionsAction: vi.fn(),
 }));
 vi.mock('@/app/(dashboard)/security/actions', () => ({ wafAuditRecordAction: vi.fn() }));
+vi.mock('@/app/(dashboard)/security/request-actions', () => ({ wafRequestAction: vi.fn() }));
 
 import { WafEventView, type EventDetailContext, type LoadState } from '@/app/(dashboard)/security/EventDetail';
 import type { SecurityEvent } from '@/src/lib/analytics/security';

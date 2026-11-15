@@ -1466,6 +1466,8 @@ async function updateWafSettingsActionUnlocked(_prevState: ActionResult | null, 
       ...(requestBodyLimit !== undefined ? { request_body_limit: requestBodyLimit } : {}),
       ...(requestBodyInMemoryLimit !== undefined ? { request_body_in_memory_limit: requestBodyInMemoryLimit } : {}),
       ...(requestBodyLimitAction ? { request_body_limit_action: requestBodyLimitAction } : {}),
+      // Not on this form: keep the stored value.
+      ...(existing?.log_request_body !== undefined ? { log_request_body: existing.log_request_body } : {}),
     };
     await saveWafSettings(config, { actorUserId: Number(session.user.id) });
     await logAuditEvent({ userId: Number(session.user.id), action: "update", entityType: "waf_settings", summary: "Updated the global WAF settings", data: config });
