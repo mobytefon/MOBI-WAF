@@ -95,7 +95,7 @@ services:
       - geoip-data:/usr/share/GeoIP:ro,z
       # Read-write: whichever replica leads ingests the logs and truncates
       # waf-audit.log.
-      - caddy-logs:/logs
+      - ${CADDY_LOGS_DIR:-caddy-logs}:/logs
       - acme-ca:/acme-ca
     depends_on:
       postgres:

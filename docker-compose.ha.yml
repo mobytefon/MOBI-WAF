@@ -71,7 +71,7 @@ services:
       # Each node keeps its own database file; the leader's is replicated.
       - ha-web-2-data:/app/data
       - geoip-data:/usr/share/GeoIP:ro,z
-      - caddy-logs:/logs
+      - ${CADDY_LOGS_DIR:-caddy-logs}:/logs
       - acme-ca:/acme-ca
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health?scope=live',r=>{process.exit(r.statusCode<400?0:1)}).on('error',()=>process.exit(1))"]
