@@ -1,6 +1,12 @@
 services:
   web:
     container_name: ingressi-web
+    # Rootless Docker: container root is the host user that runs dockerd, so
+    # files in bind mounts (CADDY_LOGS_DIR) belong to that user without a chown.
+    # web and caddy must both run as root: caddy's log files and admin socket
+    # are then root-owned, and web must read/truncate the logs and use the socket.
+    # Do not use this with rootful Docker (it would be real host root).
+    user: "0:0"
     image: ghcr.io/ingres-si/ingressi-web:latest
     build:
       context: .
@@ -88,6 +94,9 @@ services:
 
       # Instance sync (master): time limit in ms for one sync request to a slave
       INSTANCE_SYNC_TIMEOUT_MS: ${INSTANCE_SYNC_TIMEOUT_MS:-60000}
+      # Allow instance sync over plain HTTP (default true here: internal network).
+      # Set to false to require https for slave/master URLs.
+      INSTANCE_SYNC_ALLOW_HTTP: ${INSTANCE_SYNC_ALLOW_HTTP:-true}
 
       # Pull replica: values shown by Fleet -> Pull replicas on the master
       INSTANCE_SYNC_MODE: ${INSTANCE_SYNC_MODE:-}
@@ -102,6 +111,9 @@ services:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
       # Days of analytics data to keep before TTL deletes it (default 30)
       CLICKHOUSE_RETENTION_DAYS: ${CLICKHOUSE_RETENTION_DAYS:-30}
+    extra_hosts:
+      # Local LLM endpoint reachable from the web container by name (see .env.example)
+      - "${LOCAL_LLM_DOMAIN:-local-llm}:${LOCAL_LLM_IP:-host-gateway}"
     group_add:
       # caddy's GID: group access to the log files (read access.log,
       # truncate the group-writable waf-audit.log). The web user never needs
@@ -112,7 +124,9 @@ services:
       - geoip-data:/usr/share/GeoIP:ro,z
       # Read-write: waf-log-parser truncates waf-audit.log after ingesting it,
       # since Coraza's SecAuditLog has no built-in rotation of its own.
-      - caddy-logs:/logs
+      # CADDY_LOGS_DIR: absolute host dir for a bind mount (rootless: see
+      # .env.example); unset keeps the caddy-logs named volume.
+      - ${CADDY_LOGS_DIR:-caddy-logs}:/logs
       # Custom ACME CA root PEM written here by web, read by caddy (issue #192)
       - acme-ca:/acme-ca
       # Caddy admin API unix socket (created by caddy; reached via the shared
@@ -136,6 +150,12 @@ services:
 
   caddy:
     container_name: ingressi-caddy
+    # Rootless Docker: container root is the host user that runs dockerd, so
+    # files in bind mounts (CADDY_LOGS_DIR) belong to that user without a chown.
+    # web and caddy must both run as root: caddy's log files and admin socket
+    # are then root-owned, and web must read/truncate the logs and use the socket.
+    # Do not use this with rootful Docker (it would be real host root).
+    user: "0:0"
     image: ghcr.io/ingres-si/ingressi-caddy:latest
     build:
       context: .
@@ -176,7 +196,9 @@ services:
       # A write-only dir (e.g. mode 0733/0773) keeps rotation working but
       # silently disables cleanup and fills the disk. On the host run:
       #   chgrp <CADDY_GID> <host-dir> && chmod 2770 <host-dir>
-      - caddy-logs:/logs
+      # CADDY_LOGS_DIR: absolute host dir for a bind mount (rootless: see
+      # .env.example); unset keeps the caddy-logs named volume.
+      - ${CADDY_LOGS_DIR:-caddy-logs}:/logs
       - geoip-data:/usr/share/GeoIP:ro,z
       # Custom ACME CA root PEM written by web, read here for trusted_roots_pem_files (issue #192)
       - acme-ca:/acme-ca:ro
@@ -213,7 +235,8 @@ services:
       AUTH: 0
       BUILD: 0
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Rootless Docker: set DOCKER_SOCKET=/run/user/<uid>/docker.sock in .env.
+      - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro
     # SELinux hosts (Fedora, RHEL, CoreOS) refuse a confined container the
     # Docker socket, so every call through the proxy would fail with 503 and
     # L4 port changes would never apply. Labelling stays on for every other
