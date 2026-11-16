@@ -1,6 +1,6 @@
 /**
  * The full request kept with a WAF event (waf-request-capture.ts): the body
- * cleaned (credentials redacted, files and binary data left out) and cut to
+ * cleaned (credentials redacted, uploaded files left out) and cut to
  * 32 KiB, and the value each rule matched kept around the match, even when
  * the match lies past the stored body or past what Coraza logs of a value.
  */
@@ -102,7 +102,7 @@ describe('sanitizeRequestBody', () => {
     expect(sanitizeRequestBody('{"password": "p", "q": "x"', 'application/json', isCredential)).toBe('{"password": "[redacted]", "q": "x"');
   });
 
-  it('leaves uploaded files and binary data out, with their size', () => {
+  it('leaves uploaded files out, with their size, and keeps binary data as text', () => {
     const multipart = [
       '--b',
       'Content-Disposition: form-data; name="file"; filename="C7EC.jpg"',
@@ -117,7 +117,7 @@ describe('sanitizeRequestBody', () => {
     // Each U+FFFD stands for one byte the client sent: 1000 × (2 + 4) bytes.
     expect(out).toContain('[5.9 KiB of file data not stored]');
     expect(out).not.toContain('JFIF');
-    expect(sanitizeRequestBody('\u0000\u0001binary', 'application/octet-stream', isCredential)).toMatch(/of binary data not stored/);
+    expect(sanitizeRequestBody('\u0000\u0001binary', 'application/octet-stream', isCredential)).toBe('\u0000\u0001binary');
   });
 });
 
@@ -159,6 +159,48 @@ describe('captureAuditRequest', () => {
     });
     captureAuditRequest(credential, isCredential);
     expect(captureOf(credential).matchedValues).toEqual([]);
+  });
+
+  it('keeps a binary body as text, flagged, with the match in it', () => {
+    // A binary RPC body (NUL bytes) carrying an HTTP request line deep inside.
+    const before = '\u0000\u0001'.repeat(5_000);
+    const body = `${before}POST /ws/MPL\u0000\u0000\u0000\u0000us/update_stock_isdn_plus HTTP/1.1${'\u0000x'.repeat(5_000)}`;
+    const found = 'post /ws/mpl\u0000\u0000\u0000\u0000us/update_stock_isdn_plus http/1';
+    const record = auditRecord({
+      body,
+      contentType: 'application/octet-stream',
+      data: `Matched Data: ${found} found within REQUEST_BODY: ${before.slice(0, 100)}`,
+    });
+    captureAuditRequest(record, isCredential);
+
+    expect(record.transaction.request.body).toBe(body);
+    const capture = captureOf(record);
+    expect(capture).toMatchObject({ bodyBinary: true, bodyCut: false });
+    const matched = capture.matchedValues[0];
+    expect(matched).toMatchObject({ variable: 'REQUEST_BODY', length: body.length, offset: before.length - 1024 });
+    expect(matched.value.slice(matched.start, matched.end)).toBe('POST /ws/MPL\u0000\u0000\u0000\u0000us/update_stock_isdn_plus HTTP/1');
+    expect(wafRequestViewOf(JSON.stringify(record))?.capture?.bodyBinary).toBe(true);
+  });
+
+  it('keeps a match in an uploaded file, and nothing when a left-out body does not hold it', () => {
+    const multipart = ['--b', 'Content-Disposition: form-data; name="file"; filename="x.php"', '', `${'z'.repeat(9_000)}<?php system($_GET[c]); ?>`, '--b--', ''].join('\r\n');
+    const file = auditRecord({
+      body: multipart,
+      contentType: 'multipart/form-data; boundary=b',
+      data: 'Matched Data: <?php found within REQUEST_BODY: --b',
+    });
+    captureAuditRequest(file, isCredential);
+    const matched = captureOf(file).matchedValues[0];
+    expect(matched.value.slice(matched.start, matched.end)).toBe('<?php');
+    expect(matched.value.length).toBeLessThanOrEqual(768);
+
+    const missing = auditRecord({
+      body: ['--b', 'Content-Disposition: form-data; name="file"; filename="a.bin"', '', 'data', '--b--', ''].join('\r\n'),
+      contentType: 'multipart/form-data; boundary=b',
+      data: 'Matched Data: transformed found within REQUEST_BODY: --b',
+    });
+    captureAuditRequest(missing, isCredential);
+    expect(captureOf(missing).matchedValues).toEqual([]);
   });
 
   it('leaves a record without body or matched value as it is', () => {

@@ -6,7 +6,8 @@
  * At ingest (captureAuditRequest, called by waf-log-parser's
  * redactAuditEntry on the copy it stores):
  *  - the body is cleaned: credential-named form, multipart and JSON fields
- *    are redacted, file uploads and binary data are replaced by their size;
+ *    are redacted, file uploads are replaced by their size; a binary body
+ *    is kept as text (the page shows its control characters as escapes);
  *  - it is cut to MAX_STORED_BODY_BYTES;
  *  - for each rule that matched, the value of the variable it matched is
  *    looked up in the whole request (before the cut) and an excerpt around
@@ -27,6 +28,9 @@ export const MAX_STORED_BODY_BYTES = 32 * 1024;
 /** The longest excerpt of a matched value kept, and how much of it comes before the match. */
 const MAX_VALUE_CHARS = 4096;
 const CONTEXT_BEFORE = 1024;
+/** Of a file the body leaves out, only this much around a match is kept. */
+const MAX_LEFT_OUT_CHARS = 768;
+const LEFT_OUT_BEFORE = 256;
 const MAX_MATCHED_VALUES = 20;
 /** Bodies parsed as JSON at most this large; larger ones are redacted by pattern. */
 const MAX_PARSED_BODY_BYTES = 4 * 1024 * 1024;
@@ -52,6 +56,8 @@ export type WafRequestCapture = {
   bodyStoredBytes: number;
   /** The cleaned body was longer than MAX_STORED_BODY_BYTES and was cut. */
   bodyCut: boolean;
+  /** The body kept is binary (NUL bytes, many control characters or bytes that were not UTF-8). */
+  bodyBinary?: boolean;
   matchedValues: WafMatchedValue[];
 };
 
@@ -208,20 +214,19 @@ function sanitizeMultipart(body: string, boundary: string, isCredential: Credent
       const part = parts.get(index);
       if (!part) return segment;
       let content = part.content;
-      if (part.file || looksBinary(content)) content = `[${formatBytes(sentBytes(content))} of file data not stored]`;
+      if (part.file) content = `[${formatBytes(sentBytes(content))} of file data not stored]`;
       else if (part.name !== null && isCredential(part.name)) content = REDACTED;
       return part.head + content + part.trailing;
     })
     .join(`--${boundary}`);
 }
 
-/** The body as a WAF event keeps it, before the size cut: credentials redacted, files and binary data left out. */
+/** The body as a WAF event keeps it, before the size cut: credentials redacted, uploaded files left out. */
 export function sanitizeRequestBody(body: string, contentType: string, isCredential: CredentialTest): string {
   if (!body) return body;
   const type = contentType.toLowerCase();
   const boundary = type.startsWith("multipart/") ? multipartBoundary(contentType) : null;
   if (boundary) return sanitizeMultipart(body, boundary, isCredential);
-  if (looksBinary(body)) return `[${formatBytes(sentBytes(body))} of binary data not stored]`;
   if (type.includes("x-www-form-urlencoded")) return redactFormBody(body, isCredential);
   if (type.includes("json") || /^\s*[[{]/.test(body)) return redactJsonBody(body, isCredential);
   return body;
@@ -312,11 +317,34 @@ function variableValue(variable: string, request: RequestParts, sanitizedBody: (
 }
 
 /** The value, or a window of it with the match near its start. */
-function excerpt(value: string, span: MatchSpan | null): { text: string; offset: number } {
-  if (value.length <= MAX_VALUE_CHARS) return { text: value, offset: 0 };
-  let from = span ? Math.max(0, span.start - CONTEXT_BEFORE) : 0;
-  if (span && span.end - from > MAX_VALUE_CHARS) from = span.start;
-  return { text: value.slice(from, from + MAX_VALUE_CHARS), offset: from };
+function excerpt(value: string, span: MatchSpan | null, max = MAX_VALUE_CHARS, before = CONTEXT_BEFORE): { text: string; offset: number } {
+  if (value.length <= max) return { text: value, offset: 0 };
+  let from = span ? Math.max(0, span.start - before) : 0;
+  if (span && span.end - from > max) from = span.start;
+  return { text: value.slice(from, from + max), offset: from };
+}
+
+/**
+ * What sanitizeRequestBody leaves out of the body and replaces by its size:
+ * the uploaded files of a multipart body (credential-named ones are never
+ * looked in).
+ */
+function leftOutContents(request: RequestParts, isCredential: CredentialTest): string[] {
+  const { body, contentType } = request;
+  const boundary = body && contentType.toLowerCase().startsWith("multipart/") ? multipartBoundary(contentType) : null;
+  if (!boundary) return [];
+  return [...multipartParts(body, boundary).parts.values()]
+    .filter((part) => part.file && !(part.name !== null && isCredential(part.name)))
+    .map((part) => part.content);
+}
+
+/** A rule's match in a file left out of the body, with the content it lies in. */
+function leftOutMatch(request: RequestParts, found: string, isCredential: CredentialTest): { value: string; span: MatchSpan } | null {
+  for (const content of leftOutContents(request, isCredential)) {
+    const span = locateMatch(content, found);
+    if (span) return { value: content, span };
+  }
+  return null;
 }
 
 function matchedValuesOf(messages: unknown, request: RequestParts, sanitizedBody: () => string, isCredential: CredentialTest): WafMatchedValue[] {
@@ -349,10 +377,20 @@ function matchedValuesOf(messages: unknown, request: RequestParts, sanitizedBody
     const key = `${rule.ruleId}\n${split.variable}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const value = variableValue(split.variable, request, sanitizedBody, parsedJson, isCredential);
+    let value = variableValue(split.variable, request, sanitizedBody, parsedJson, isCredential);
+    let span = value === null ? null : locateMatch(value, split.found);
+    let window: [number, number] = [MAX_VALUE_CHARS, CONTEXT_BEFORE];
+    if (!span && /^REQUEST_BODY$/i.test(split.variable)) {
+      // The rule matched in a file the stored body leaves out:
+      // only a short window around the match is kept, never the data itself.
+      const left = leftOutMatch(request, split.found, isCredential);
+      if (left) {
+        ({ value, span } = left);
+        window = [MAX_LEFT_OUT_CHARS, LEFT_OUT_BEFORE];
+      } else if (leftOutContents(request, isCredential).length > 0) continue;
+    }
     if (value === null) continue;
-    const span = locateMatch(value, split.found);
-    const { text, offset } = excerpt(value, span);
+    const { text, offset } = excerpt(value, span, ...window);
     values.push({
       ruleId: rule.ruleId,
       variable: split.variable,
@@ -393,6 +431,7 @@ export function captureAuditRequest(record: Record<string, unknown>, isCredentia
     bodyBytes: sentBytes(parts.body),
     bodyStoredBytes: utf8Length(stored),
     bodyCut: stored.length < sanitizedBody().length,
+    ...(looksBinary(stored) ? { bodyBinary: true } : {}),
     matchedValues,
   };
   record[WAF_CAPTURE_KEY] = capture;
@@ -436,7 +475,7 @@ function captureOf(value: unknown): WafRequestCapture | null {
     const located = Number.isSafeInteger(start) && Number.isSafeInteger(end) && start >= 0 && start <= end && end <= value.length;
     matchedValues.push({ ruleId, variable: item.variable.slice(0, 512), value, offset, length, start: located ? start : -1, end: located ? end : -1 });
   }
-  return { bodyBytes, bodyStoredBytes, bodyCut: value.bodyCut === true, matchedValues };
+  return { bodyBytes, bodyStoredBytes, bodyCut: value.bodyCut === true, ...(value.bodyBinary === true ? { bodyBinary: true } : {}), matchedValues };
 }
 
 /** The full request of a stored audit record (waf_events.raw_data); null when it is not one. */

@@ -99,6 +99,29 @@ describe('Show the value', () => {
     expect(shown?.note).toMatch(/token fingerprint/);
   });
 
+  it('says a binary body shows escapes and is not redacted', () => {
+    const note = bodyNote({ ...view, body: '\u0000\u0001x', capture: { ...view.capture!, bodyBinary: true } });
+    expect(note).toMatch(/The body is binary/);
+    expect(note).toMatch(/not redacted/);
+    expect(bodyNote({ ...view, capture: { ...view.capture!, bodyCut: true, bodyBinary: true } })).toMatch(/^Only the first .* The body is binary/);
+  });
+
+  it('shows the logged value over an excerpt that is only the size of left-out data', () => {
+    const found = 'post /ws/mpl\u0000\u0000us/update http/1';
+    const logged = '\u0000\u0001POST /ws/MPL\u0000\u0000us/update HTTP/1.1';
+    const shown = shownValue({
+      ruleId: 921110,
+      variable: 'REQUEST_BODY',
+      found,
+      logged,
+      matchedData: `Matched Data: ${found} found within REQUEST_BODY: ${logged}`,
+      captured: [{ ruleId: 921110, variable: 'REQUEST_BODY', value: '[25 KiB of binary data not stored]', offset: 0, length: 34, start: -1, end: -1 }],
+    });
+    expect(shown).toMatchObject({ text: logged, start: 2, end: 32, note: null });
+    const html = renderToStaticMarkup(createElement(MatchedValue, { shown: shown! }));
+    expect(html).toMatch(/<mark[^>]*>POST \/ws\/MPL\\x00\\x00us\/update HTTP\/1<\/mark>/);
+  });
+
   it('has nothing more to show when the value is the matched text', () => {
     expect(shownValue({ ruleId: 1, variable: 'ARGS:q', found: 'x', logged: 'x', matchedData: 'Matched Data: x found within ARGS:q: x' })).toBeNull();
   });
