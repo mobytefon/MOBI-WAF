@@ -1,0 +1,29 @@
+# Merged over the image's /etc/crowdsec/config.yaml by crowdsec and cscli.
+# ingressi-entrypoint.sh copies this file into /etc/crowdsec on every start;
+# edit it here, not in the volume. CrowdSec substitutes environment variables
+# in this file before parsing it, so it must not mention any other variable,
+# not even in a comment.
+
+# The crowdsec-db service of docker-compose.crowdsec.yml (PostgreSQL, only on
+# the internal crowdsec-internal network).
+db_config:
+  type: postgresql
+  user: crowdsec
+  password: ${CROWDSEC_DB_PASSWORD}
+  db_name: crowdsec
+  host: crowdsec-db
+  port: 5432
+  sslmode: disable
+
+# Caddy's bouncer and the dashboard reach the local API as http://crowdsec:8080
+# on caddy-network; no port is published on the host.
+api:
+  server:
+    listen_uri: 0.0.0.0:8080
+
+# Read by the dashboard (CROWDSEC_METRICS_URL).
+prometheus:
+  enabled: true
+  level: full
+  listen_addr: 0.0.0.0
+  listen_port: 6060

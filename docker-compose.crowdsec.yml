@@ -1,0 +1,135 @@
+# CrowdSec: blocks client IPs by behaviour (scenarios over Caddy's access
+# log) and by the community blocklist, in front of the WAF. An override of
+# docker-compose.yml; it changes nothing unless you name it:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.crowdsec.yml up -d --build
+#
+# (or put COMPOSE_FILE=docker-compose.yml:docker-compose.crowdsec.yml in .env
+# and run docker compose as usual; other overrides such as
+# docker-compose.postgres.yml can be listed before it). Needs in .env besides
+# the usual variables, each generated with openssl rand -hex 32:
+#
+#   CROWDSEC_BOUNCER_KEY=...       Caddy's bouncer key (the dashboard puts it
+#                                  in the Caddy config, like DNS tokens)
+#   CROWDSEC_MACHINE_PASSWORD=...  the dashboard's machine account on the
+#                                  local API (alerts and decisions)
+#   CROWDSEC_DB_PASSWORD=...       CrowdSec's own PostgreSQL database
+#
+# and optionally CROWDSEC_ENROLL_KEY to enroll the engine in the CrowdSec
+# console. The community blocklist works without it.
+#
+# crowdsec reads Caddy's access.log read-only from the same directory the
+# caddy service writes it to (CADDY_LOGS_DIR or the caddy-logs volume); turn
+# on access logging in JSON format in the dashboard. Its local API and
+# metrics are reachable only on the compose networks, as http://crowdsec:8080
+# and http://crowdsec:6060/metrics; no port is published. Its database
+# (crowdsec-db) sits on an internal network that only crowdsec joins.
+#
+# Whitelists and collections edited in the dashboard are written to the
+# crowdsec-managed volume; a watcher inside the crowdsec container
+# (docker/crowdsec/ingressi-sync.sh) tests and applies them. Nothing here
+# reaches the Docker socket.
+#
+# The caddy service is left as it is: the l4-port-manager recreates caddy
+# with docker-compose.yml and at most one extra file (COMPOSE_EXTRA_FILE),
+# and caddy needs nothing from this file. Only the web service gets the
+# CrowdSec settings; a second replica (web-2) does not.
+#
+# The bouncer key is registered on the first start only. To change it,
+# delete the old one (docker compose exec crowdsec cscli bouncers delete
+# ingressi_caddy) and restart crowdsec. The machine password is set again on
+# every start.
+
+services:
+  crowdsec:
+    container_name: ingressi-crowdsec
+    build:
+      context: .
+      dockerfile: docker/crowdsec/Dockerfile
+    restart: unless-stopped
+    # crowdsec is not PID 1, so the watcher's SIGHUP reload finds it and
+    # exited helper processes are reaped.
+    init: true
+    environment:
+      # Hub items installed (and upgraded) on every start. The dashboard can
+      # add more collections; it never removes these.
+      COLLECTIONS: crowdsecurity/caddy crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/whitelist-good-actors
+      # Country and AS of each source, for whitelists by country or ASN.
+      PARSERS: crowdsecurity/geoip-enrich
+      # Registers the bouncer "ingressi_caddy" that Caddy pulls decisions with.
+      BOUNCER_KEY_ingressi_caddy: ${CROWDSEC_BOUNCER_KEY:?ERROR - CROWDSEC_BOUNCER_KEY is required}
+      # Optional: enroll in the CrowdSec console (app.crowdsec.net).
+      ENROLL_KEY: ${CROWDSEC_ENROLL_KEY:-}
+      # Read by docker/crowdsec/config.yaml.local.
+      CROWDSEC_DB_PASSWORD: ${CROWDSEC_DB_PASSWORD:?ERROR - CROWDSEC_DB_PASSWORD is required}
+      # The dashboard's machine account (docker/crowdsec/ingressi-entrypoint.sh).
+      CROWDSEC_MACHINE_ID: ingressi-web
+      CROWDSEC_MACHINE_PASSWORD: ${CROWDSEC_MACHINE_PASSWORD:?ERROR - CROWDSEC_MACHINE_PASSWORD is required}
+    volumes:
+      - ${CADDY_LOGS_DIR:-caddy-logs}:/var/log/caddy:ro
+      # Configuration and hub items, local machine credentials, the CAPI
+      # registration and the applied whitelists.
+      - crowdsec-config:/etc/crowdsec
+      # Hub data files (GeoIP databases, ...); docker_start.sh refuses to run
+      # without a volume here.
+      - crowdsec-data:/var/lib/crowdsec/data
+      # desired/ written by web, status/ written here (ingressi-sync.sh).
+      - crowdsec-managed:/ingressi
+    depends_on:
+      crowdsec-db:
+        condition: service_healthy
+    # caddy-network: Caddy's bouncer and the dashboard reach the local API,
+    # and the hub and the central API are reached through it.
+    networks:
+      - caddy-network
+      - crowdsec-internal
+    healthcheck:
+      test: ["CMD", "cscli", "lapi", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # The first start downloads the hub and registers with the central API.
+      start_period: 120s
+
+  crowdsec-db:
+    container_name: ingressi-crowdsec-db
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: crowdsec
+      POSTGRES_DB: crowdsec
+      POSTGRES_PASSWORD: ${CROWDSEC_DB_PASSWORD:?ERROR - CROWDSEC_DB_PASSWORD is required}
+    volumes:
+      - crowdsec-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crowdsec -d crowdsec"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    stop_grace_period: 30s
+    networks:
+      - crowdsec-internal
+
+  web:
+    environment:
+      CROWDSEC_LAPI_URL: http://crowdsec:8080
+      CROWDSEC_METRICS_URL: http://crowdsec:6060/metrics
+      CROWDSEC_BOUNCER_KEY: ${CROWDSEC_BOUNCER_KEY:?ERROR - CROWDSEC_BOUNCER_KEY is required}
+      CROWDSEC_MACHINE_ID: ingressi-web
+      CROWDSEC_MACHINE_PASSWORD: ${CROWDSEC_MACHINE_PASSWORD:?ERROR - CROWDSEC_MACHINE_PASSWORD is required}
+      CROWDSEC_MANAGED_DIR: /crowdsec-managed
+    volumes:
+      - crowdsec-managed:/crowdsec-managed
+
+networks:
+  # crowdsec and its database only; no egress.
+  crowdsec-internal:
+    driver: bridge
+    internal: true
+
+volumes:
+  crowdsec-config:
+  crowdsec-data:
+  crowdsec-managed:
+  crowdsec-db-data:

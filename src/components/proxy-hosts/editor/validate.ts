@@ -301,6 +301,7 @@ export function fieldOfServerError(message: string, nameSection: SectionId): { i
     [/^waf\.request_body_limit/, "f-waf-body", "security"],
     [/directive|SecRule|SecAction|SecRuleRemove/i, "f-waf-directives", "security"],
     [/^waf\./, "f-waf-mode", "security"],
+    [/^crowdsec/, "f-crowdsec-mode", "security"],
     [/^authentik\.bypassSources/, "f-ak-sources", "access"],
     [/^forwardAuth\.bypassSources/, "f-fa-sources", "access"],
     [/^ingressiForwardAuth\.bypass_sources/, "f-fi-sources", "access"],

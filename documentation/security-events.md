@@ -4,6 +4,8 @@
 
 Reading the page needs the `waf:read` permission. Actions need their own: adding a WAF exclusion needs `waf:write`, blocking an address needs `access_lists:write`. Buttons a user may not use are disabled with the reason.
 
+Requests the CrowdSec bouncer blocks are not listed here: they are stopped before the WAF, and CrowdSec's alerts and decisions have their own pages under **Security events → CrowdSec** (see [CrowdSec](crowdsec.md)).
+
 The old **WAF events** page (`/waf/events`) now opens Security events with the WAF filter and the same time range.
 
 ## What the page shows

@@ -16,6 +16,7 @@ import { isDeepStrictEqual } from "node:util";
 import { type GeoBlockSettings, type WafSettings, getDnsProviderSettings, getWafSettings } from "../settings";
 import { normalizeProxyHostDomains } from "../proxy-host-domains";
 import { ApiValidationError } from "../api-errors";
+import { validateCrowdSecHostConfig, type CrowdSecHostConfig } from "../crowdsec/host-mode";
 import { validateProxyHostCaddyScalars } from "../caddy-input-validation";
 import { normalizeBypassSources, readBypassSources } from "../sign-in-bypass";
 import { brandName } from "@/ee/white-label/store";
@@ -607,6 +608,7 @@ type ProxyHostMeta = {
   geoblock?: GeoBlockSettings;
   geoblock_mode?: GeoBlockMode;
   waf?: WafHostConfig;
+  crowdsec?: CrowdSecHostConfig;
   mtls?: MtlsConfig;
   // Stored under its pre-rename key, which existing databases, exports and
   // replicas on older versions read.
@@ -647,6 +649,8 @@ export type ProxyHost = {
   geoblock: GeoBlockSettings | null;
   geoblockMode: GeoBlockMode;
   waf: WafHostConfig | null;
+  /** CrowdSec bouncer on this host; null inherits the global "apply to all hosts" (src/lib/crowdsec). */
+  crowdsec?: CrowdSecHostConfig | null;
   mtls: MtlsConfig | null;
   ingressiForwardAuth: IngressiForwardAuthConfig | null;
   forwardAuth: ProxyHostForwardAuthConfig | null;
@@ -685,6 +689,8 @@ export type ProxyHostInput = {
   geoblock?: GeoBlockSettings | null;
   geoblockMode?: GeoBlockMode;
   waf?: WafHostConfig | null;
+  /** CrowdSec bouncer on this host: { enabled: true|false }, or null to inherit. */
+  crowdsec?: CrowdSecHostConfig | null;
   mtls?: MtlsConfig | null;
   ingressiForwardAuth?: IngressiForwardAuthInput | null;
   forwardAuth?: ProxyHostForwardAuthInput | null;
@@ -1082,6 +1088,10 @@ function serializeMeta(meta: ProxyHostMeta | null | undefined) {
     normalized.waf = meta.waf;
   }
 
+  if (meta.crowdsec && typeof meta.crowdsec.enabled === "boolean") {
+    normalized.crowdsec = { enabled: meta.crowdsec.enabled };
+  }
+
   if (meta.mtls) {
     const mtls = sanitizeMtlsMeta(meta.mtls);
     if (mtls) {
@@ -1338,6 +1348,7 @@ function parseMeta(value: string | null): ProxyHostMeta {
       geoblock: parsed.geoblock,
       geoblock_mode: parsed.geoblock_mode,
       waf: parsed.waf,
+      crowdsec: typeof parsed.crowdsec?.enabled === "boolean" ? { enabled: parsed.crowdsec.enabled } : undefined,
       mtls: parsed.mtls,
       cpm_forward_auth: sanitizeIngressiForwardAuthMeta(parsed.cpm_forward_auth),
       forward_auth: sanitizeForwardAuthMeta(parsed.forward_auth),
@@ -2018,6 +2029,12 @@ function buildMeta(
     }
   }
 
+  if (input.crowdsec !== undefined) {
+    const crowdsec = input.crowdsec === null ? {} : validateCrowdSecHostConfig(input.crowdsec);
+    if (crowdsec.enabled === undefined) delete next.crowdsec;
+    else next.crowdsec = crowdsec;
+  }
+
   if (input.mtls !== undefined) {
     if (input.mtls && input.mtls.enabled) {
       const mtls = sanitizeMtlsMeta(input.mtls);
@@ -2556,6 +2573,7 @@ function parseProxyHost(row: ProxyHostRow): ProxyHost {
     geoblock: hydrateGeoBlock(meta.geoblock),
     geoblockMode: meta.geoblock_mode ?? "merge",
     waf: meta.waf ?? null,
+    crowdsec: meta.crowdsec ?? null,
     mtls: meta.mtls ?? null,
     ingressiForwardAuth: meta.cpm_forward_auth?.enabled
       ? {

@@ -26,6 +26,7 @@ import type {
 import type { AuthentikSettings, ForwardAuthSettings, GeoBlockSettings } from "@/lib/settings";
 import type { RateLimitKey } from "@/lib/rate-limit-rules";
 import { hostModeOf, withHostMode, type WafHostMode } from "@/lib/waf-host-mode";
+import { crowdSecConfigForMode, crowdSecHostModeOf, type CrowdSecHostMode } from "@/lib/crowdsec/host-mode";
 
 // ── Constants ─────────────────────────────────────────────────────────
 
@@ -212,6 +213,8 @@ export type HostForm = {
   waf: WafForm;
   wafDirectives: string;
   wafExcluded: number[];
+  /** CrowdSec bouncer on this host (src/lib/crowdsec/host-mode.ts). */
+  crowdsec: CrowdSecHostMode;
   rateLimit: RateLimitForm;
   accessListId: number | null;
   geoblock: GeoForm;
@@ -617,6 +620,7 @@ export function hostToForm(host: ProxyHost, context: FormContext = {}): HostForm
     waf: wafForm(host.waf, context.globalCrs),
     wafDirectives: host.waf?.custom_directives ?? "",
     wafExcluded: [...(host.waf?.excluded_rule_ids ?? [])].sort((a, b) => a - b),
+    crowdsec: crowdSecHostModeOf(host.crowdsec),
     rateLimit: host.rateLimit
       ? { enabled: host.rateLimit.enabled, mode: host.rateLimit.mode, rules: host.rateLimit.rules.map(rateLimitRow) }
       : { enabled: false, mode: "merge", rules: [] },
@@ -696,6 +700,7 @@ export function newHostForm(
     waf: wafForm(null, context.globalCrs),
     wafDirectives: "",
     wafExcluded: [],
+    crowdsec: "inherit",
     rateLimit: { enabled: false, mode: "merge", rules: [] },
     accessListId: null,
     geoblock: geoToForm(null),
@@ -890,6 +895,16 @@ function upstreamDnsInput(form: HostForm, base: ProxyHost | null) {
 }
 
 /**
+ * The host's CrowdSec setting, when it is sent: a new host sends a mode of
+ * its own only; going back to the global setting sends {} (no `enabled`).
+ */
+function crowdsecInput(form: HostForm, saved: HostForm, creating: boolean) {
+  if (creating) return form.crowdsec === "inherit" ? undefined : crowdSecConfigForMode(form.crowdsec)!;
+  if (form.crowdsec === saved.crowdsec) return undefined;
+  return crowdSecConfigForMode(form.crowdsec) ?? {};
+}
+
+/**
  * The host input of a form. `saved` is the form the editor started from and
  * `base` the stored host it came from (the edited host, or the template of a
  * copy); both decide which stored values a field keeps. Undefined values mean
@@ -925,6 +940,7 @@ export function formToInput(form: HostForm, saved: HostForm, base: ProxyHost | n
     skipHttpsHostnameValidation: form.skipHttpsHostnameValidation,
     locationRules,
     waf: wafInput(form, saved, base?.waf, creating),
+    crowdsec: crowdsecInput(form, saved, creating),
     rateLimit: rateLimitInput(form, base),
     accessListId: form.accessListId,
     geoblock: geo.geoblock,

@@ -31,6 +31,7 @@ import { ANALYTICS_OPENAPI_PATHS, ANALYTICS_OPENAPI_SCHEMAS, ANALYTICS_OPENAPI_T
 import { QUESTIONS_OPENAPI_PATHS, QUESTIONS_OPENAPI_SCHEMAS } from "@/ee/ai/questions/openapi";
 import { WAF_OPENAPI_PATHS, WAF_OPENAPI_SCHEMAS, WAF_OPENAPI_TAG, WAF_TUNING_OPENAPI_PROPERTIES } from "@/src/lib/waf-openapi";
 import { ACCESS_LISTS_OPENAPI_PATHS, ACCESS_LISTS_OPENAPI_SCHEMAS, ACCESS_LISTS_OPENAPI_TAG } from "@/src/lib/access-lists-openapi";
+import { CROWDSEC_OPENAPI_PATHS, CROWDSEC_OPENAPI_SCHEMAS, CROWDSEC_OPENAPI_TAG } from "@/src/lib/crowdsec-openapi";
 import { CERTIFICATE_OVERVIEW_OPENAPI_PATHS, CERTIFICATE_OVERVIEW_OPENAPI_SCHEMAS } from "@/src/lib/certificate-overview-openapi";
 import { PROXY_HOST_HEALTH_OPENAPI_PATHS, PROXY_HOST_HEALTH_OPENAPI_SCHEMAS } from "@/src/lib/proxy-host-health-openapi";
 import { PROXY_HOST_PREVIEW_OPENAPI_PATHS, PROXY_HOST_PREVIEW_OPENAPI_SCHEMAS } from "@/src/lib/proxy-host-preview-openapi";
@@ -84,6 +85,7 @@ const spec = {
     ACCESS_LISTS_OPENAPI_TAG,
     { name: "Settings", description: "Application settings" },
     WAF_OPENAPI_TAG,
+    CROWDSEC_OPENAPI_TAG,
     SEARCH_OPENAPI_TAG,
     { name: "Instances", description: "Multi-instance management" },
     FLEET_OPENAPI_TAG,
@@ -148,6 +150,8 @@ const spec = {
     ...FLEET_OPENAPI_PATHS,
     // ── WAF: exclusions, per-host modes, events ────────────────────
     ...WAF_OPENAPI_PATHS,
+    // ── CrowdSec: alerts, decisions, whitelists ─────────────────────
+    ...CROWDSEC_OPENAPI_PATHS,
     // ── Search ──────────────────────────────────────────────────────
     ...SEARCH_OPENAPI_PATHS,
     // ── Analytics ───────────────────────────────────────────────────
@@ -869,6 +873,7 @@ const spec = {
                 "response-headers",
                 "trusted-proxies",
                 "rate-limit",
+                "crowdsec",
                 "instance-mode",
                 "sync-token",
               ],
@@ -897,6 +902,7 @@ const spec = {
                     { $ref: "#/components/schemas/ResponseHeadersSettings" },
                     { $ref: "#/components/schemas/TrustedProxiesSettings" },
                     { $ref: "#/components/schemas/RateLimitSettings" },
+                    { $ref: "#/components/schemas/CrowdSecSettings" },
                   ],
                 },
               },
@@ -933,6 +939,7 @@ const spec = {
                 "response-headers",
                 "trusted-proxies",
                 "rate-limit",
+                "crowdsec",
                 "instance-mode",
                 "sync-token",
               ],
@@ -960,6 +967,7 @@ const spec = {
                   { $ref: "#/components/schemas/ResponseHeadersSettings" },
                   { $ref: "#/components/schemas/TrustedProxiesSettings" },
                   { $ref: "#/components/schemas/RateLimitSettings" },
+                  { $ref: "#/components/schemas/CrowdSecSettings" },
                 ],
               },
             },
@@ -3302,6 +3310,7 @@ const spec = {
     },
     schemas: {
       ...ACCESS_LISTS_OPENAPI_SCHEMAS,
+      ...CROWDSEC_OPENAPI_SCHEMAS,
       ...MONETIZATION_OPENAPI_SCHEMAS,
       ...WHITE_LABEL_OPENAPI_SCHEMAS,
       ...APPROVALS_OPENAPI_SCHEMAS,
@@ -3705,6 +3714,7 @@ const spec = {
           geoblock: { oneOf: [{ $ref: "#/components/schemas/GeoBlockConfig" }, { type: "null" }] },
           geoblockMode: { type: "string", enum: ["merge", "override"], description: "How per-host geoblock merges with global" },
           waf: { oneOf: [{ $ref: "#/components/schemas/WafConfig" }, { type: "null" }] },
+          crowdsec: { oneOf: [{ $ref: "#/components/schemas/CrowdSecHostConfig" }, { type: "null" }] },
           mtls: { oneOf: [{ $ref: "#/components/schemas/MtlsConfig" }, { type: "null" }] },
           ingressiForwardAuth: { oneOf: [{ $ref: "#/components/schemas/IngressiForwardAuthConfig" }, { type: "null" }] },
           cpmForwardAuth: {
@@ -3748,6 +3758,7 @@ const spec = {
           geoblock: { oneOf: [{ $ref: "#/components/schemas/GeoBlockConfig" }, { type: "null" }] },
           geoblockMode: { type: "string", enum: ["merge", "override"] },
           waf: { oneOf: [{ $ref: "#/components/schemas/WafConfig" }, { type: "null" }] },
+          crowdsec: { oneOf: [{ $ref: "#/components/schemas/CrowdSecHostConfig" }, { type: "null" }] },
           mtls: { oneOf: [{ $ref: "#/components/schemas/MtlsConfig" }, { type: "null" }] },
           ingressiForwardAuth: { oneOf: [{ $ref: "#/components/schemas/IngressiForwardAuthConfig" }, { type: "null" }] },
           cpmForwardAuth: {

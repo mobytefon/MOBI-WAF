@@ -41,6 +41,7 @@ import { logAuditEvent } from "@/src/lib/audit";
 import { assertSettingsWriteAllowed } from "@/src/lib/access-scope";
 import type { Access } from "@/src/lib/permissions";
 import { readGlobalWafExclusionRows, restoreGlobalWafExclusionRows } from "@/src/lib/models/waf-exclusion-mirror";
+import { getCrowdSecSettings, saveCrowdSecSettings } from "@/src/lib/crowdsec/settings";
 
 type SettingsHandler = {
   read: () => Promise<unknown>;
@@ -86,6 +87,13 @@ const SETTINGS_HANDLERS: Record<string, SettingsHandler> = {
     applyCaddy: true,
     audit: "Updated rate limiting defaults",
   },
+  crowdsec: {
+    read: getCrowdSecSettings,
+    save: saveCrowdSecSettings as (data: never) => Promise<void>,
+    storageKey: "crowdsec",
+    applyCaddy: true,
+    audit: "Updated the CrowdSec settings",
+  },
 };
 
 /**
@@ -95,6 +103,7 @@ const SETTINGS_HANDLERS: Record<string, SettingsHandler> = {
  */
 const INSTANCE_GROUPS = new Set(["instance-mode", "sync-token"]);
 const WAF_GROUPS = new Set(["waf"]);
+const CROWDSEC_GROUPS = new Set(["crowdsec"]);
 
 function unknownKey(input: Record<string, unknown>, allowed: readonly string[]): string | null {
   const allowedKeys = new Set(allowed);
@@ -111,6 +120,8 @@ export async function GET(
       await requireApiPermission(request, "instances:read");
     } else if (WAF_GROUPS.has(group)) {
       await requireApiPermission(request, "waf:read");
+    } else if (CROWDSEC_GROUPS.has(group)) {
+      await requireApiPermission(request, "crowdsec:read");
     } else {
       await requireApiPermission(request, "settings:read");
     }
@@ -161,6 +172,8 @@ export async function PUT(
       await requireApiPermission(request, "instances:write");
     } else if (WAF_GROUPS.has(group)) {
       actorUserId = (await requireApiPermission(request, "waf:write")).userId;
+    } else if (CROWDSEC_GROUPS.has(group)) {
+      actorUserId = (await requireApiPermission(request, "crowdsec:write")).userId;
     } else {
       const caller = await requireApiPermission(request, "settings:write");
       actorUserId = caller.userId;

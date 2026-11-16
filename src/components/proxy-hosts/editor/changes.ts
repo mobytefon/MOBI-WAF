@@ -53,6 +53,7 @@ export type ChangeGroup = {
 };
 
 const onOff = (value: boolean) => (value ? "On" : "Off");
+const CROWDSEC_MODE_LABELS = { inherit: "Global setting", on: "On", off: "Off" } as const;
 const orNone = (value: string) => (value.trim() ? value.trim() : "Not set");
 
 function keys<K extends keyof HostForm>(...names: K[]) {
@@ -303,6 +304,7 @@ export function changeGroups(mode: "create" | "edit"): ChangeGroup[] {
       restore: keys("locationRules"),
     },
     { id: "waf", section: "security", label: "Web application firewall", focus: "f-waf-mode", kind: "list", value: (f) => f.waf, lines: wafLines, restore: keys("waf") },
+    { id: "crowdsec", section: "security", label: "CrowdSec", focus: "f-crowdsec-mode", kind: "value", value: (f) => f.crowdsec, lines: (f) => [CROWDSEC_MODE_LABELS[f.crowdsec]], restore: keys("crowdsec") },
     {
       id: "wafDirectives",
       section: "security",

@@ -28,6 +28,7 @@ An API token can also carry **scopes**: a list of permissions from the catalogue
 | `access_lists` | read, write | Access lists: their rules (address, country, continent and AS number), basic-auth users and settings, where they are used and what they stopped (24 h); the global Blocked sources list. |
 | `groups` | read, write | Forward-auth groups and members. |
 | `waf` | read, write | Security events (what the WAF, geo rules, access lists, sign-in and rate limits stopped) and why a request was blocked, global WAF settings (mode, paranoia level, anomaly thresholds), per-host WAF modes, rule exclusions, tuning suggestions. Every host. Blocking an address from Security events also needs `access_lists:write`. |
+| `crowdsec` | read, write | CrowdSec (see [../../documentation/crowdsec.md](../../documentation/crowdsec.md)): its dashboard, alerts and decisions; `write` bans and unbans addresses, manages whitelists and changes the global CrowdSec settings. A host's own CrowdSec mode stays with `proxy_hosts:write`. Every host. |
 | `analytics` | read | Traffic analytics, security events, traffic signals and per-host traffic summaries, the caller's saved analytics views, and plain-language analytics questions with saved questions (the AI analyst, [analytics-questions.md](analytics-questions.md)). Every host; per-host summaries only for the proxy hosts the role reaches, and a question's host tags only name proxy hosts the role reaches. |
 | `users` | read, write | Users, roles, custom roles, MFA resets, forward-auth sessions. |
 | `audit_log` | read | Audit log, its filters, event details with the before/after diff of configuration changes (from configuration history, secrets masked), its export and verification. Every host. |
@@ -232,6 +233,21 @@ Every guard of a route, page or server action and the permission it checks. Rout
 | `app/(dashboard)/rate-limiting/page.tsx` | `RateLimitingPage` | `settings:read` |
 | `app/(dashboard)/saml/page.tsx` | `SamlPage` | `sso:read` |
 | `app/(dashboard)/scim/page.tsx` | `ScimPage` | `scim:read` |
+| `app/(dashboard)/crowdsec/actions.ts` | `getCrowdSecAlertAction` | `crowdsec:read` |
+| `app/(dashboard)/crowdsec/actions.ts` | `lookupCrowdSecAddressAction` | `crowdsec:read` |
+| `app/(dashboard)/crowdsec/actions.ts` | `banCrowdSecAction` | `crowdsec:write` |
+| `app/(dashboard)/crowdsec/actions.ts` | `deleteCrowdSecDecisionAction` | `crowdsec:write` |
+| `app/(dashboard)/crowdsec/actions.ts` | `unbanCrowdSecAddressAction` | `crowdsec:write` |
+| `app/(dashboard)/crowdsec/actions.ts` | `createCrowdSecWhitelistAction` | `crowdsec:write` |
+| `app/(dashboard)/crowdsec/actions.ts` | `updateCrowdSecWhitelistAction` | `crowdsec:write` |
+| `app/(dashboard)/crowdsec/actions.ts` | `deleteCrowdSecWhitelistAction` | `crowdsec:write` |
+| `app/(dashboard)/crowdsec/actions.ts` | `reapplyCrowdSecWhitelistsAction` | `crowdsec:write` |
+| `app/(dashboard)/crowdsec/actions.ts` | `saveCrowdSecSettingsAction` | `crowdsec:write` |
+| `app/(dashboard)/crowdsec/alerts/page.tsx` | `CrowdSecAlertsPage` | `crowdsec:read` |
+| `app/(dashboard)/crowdsec/decisions/page.tsx` | `CrowdSecDecisionsPage` | `crowdsec:read` |
+| `app/(dashboard)/crowdsec/page.tsx` | `CrowdSecDashboardPage` | `crowdsec:read` |
+| `app/(dashboard)/crowdsec/settings/page.tsx` | `CrowdSecSettingsPage` | `crowdsec:read` |
+| `app/(dashboard)/crowdsec/whitelists/page.tsx` | `CrowdSecWhitelistsPage` | `crowdsec:read` |
 | `app/(dashboard)/security/actions.ts` | `wafAuditRecordAction` | `waf:read` |
 | `app/(dashboard)/security/request-actions.ts` | `wafRequestAction` | `waf:read` |
 | `app/(dashboard)/security/page.tsx` | `SecurityEventsPage` | `waf:read` |
@@ -635,12 +651,26 @@ Every guard of a route, page or server action and the permission it checks. Rout
 | `app/api/v1/scim/users/[id]/route.ts` | `DELETE` | `scim:write` |
 | `app/api/v1/scim/users/route.ts` | `GET` | `scim:read` |
 | `app/api/v1/scim/users/route.ts` | `POST` | `scim:write` |
+| `app/api/v1/crowdsec/alerts/[id]/route.ts` | `GET` | `crowdsec:read` |
+| `app/api/v1/crowdsec/alerts/route.ts` | `GET` | `crowdsec:read` |
+| `app/api/v1/crowdsec/decisions/[id]/route.ts` | `DELETE` | `crowdsec:write` |
+| `app/api/v1/crowdsec/decisions/route.ts` | `GET` | `crowdsec:read` |
+| `app/api/v1/crowdsec/decisions/route.ts` | `POST` | `crowdsec:write` |
+| `app/api/v1/crowdsec/decisions/route.ts` | `DELETE` | `crowdsec:write` |
+| `app/api/v1/crowdsec/status/route.ts` | `GET` | `crowdsec:read` |
+| `app/api/v1/crowdsec/whitelists/[id]/route.ts` | `PUT` | `crowdsec:write` |
+| `app/api/v1/crowdsec/whitelists/[id]/route.ts` | `DELETE` | `crowdsec:write` |
+| `app/api/v1/crowdsec/whitelists/apply/route.ts` | `POST` | `crowdsec:write` |
+| `app/api/v1/crowdsec/whitelists/route.ts` | `GET` | `crowdsec:read` |
+| `app/api/v1/crowdsec/whitelists/route.ts` | `POST` | `crowdsec:write` |
 | `app/api/v1/settings/[group]/route.ts` | `GET` | `instances:read` |
 | `app/api/v1/settings/[group]/route.ts` | `GET` | `waf:read` |
 | `app/api/v1/settings/[group]/route.ts` | `GET` | `settings:read` |
 | `app/api/v1/settings/[group]/route.ts` | `PUT` | `instances:write` |
 | `app/api/v1/settings/[group]/route.ts` | `PUT` | `waf:write` |
 | `app/api/v1/settings/[group]/route.ts` | `PUT` | `settings:write` |
+| `app/api/v1/settings/[group]/route.ts` | `GET` | `crowdsec:read` |
+| `app/api/v1/settings/[group]/route.ts` | `PUT` | `crowdsec:write` |
 | `app/api/v1/setup-checklist/route.ts` | `GET` | `settings:read` |
 | `app/api/v1/setup-checklist/route.ts` | `PUT` | `settings:write` |
 | `app/api/v1/sign-in/overview/route.ts` | `GET` | `sso:read` |

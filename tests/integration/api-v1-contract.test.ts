@@ -101,6 +101,9 @@ describe('v1 OpenAPI schemas: no top-level snake_case', () => {
     'RewriteConfig',
     'IngressiForwardAuthConfig',
     'TrustedProxiesSettings',
+    // CrowdSec: the stored global settings, and alerts as the CrowdSec Local API returns them.
+    'CrowdSecSettings',
+    'CrowdSecAlert',
   ]);
   // Properties on otherwise-camelCase schemas that we intentionally keep
   // snake_case because the route handler reads them that way.

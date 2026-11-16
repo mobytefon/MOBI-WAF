@@ -438,6 +438,21 @@ const SERVER_JOBS: readonly BackgroundJob[] = [
     },
   },
 
+  // CrowdSec whitelists managed from the dashboard: handed to the crowdsec
+  // container through the shared volume (src/lib/crowdsec/managed-sync.ts).
+  {
+    name: "crowdsec whitelist sync",
+    skipInTests: true,
+    start: async () => {
+      const { startCrowdSecManagedSync } = await import("./lib/crowdsec/managed-sync");
+      startCrowdSecManagedSync();
+    },
+    stop: async () => {
+      const { stopCrowdSecManagedSync } = await import("./lib/crowdsec/managed-sync");
+      stopCrowdSecManagedSync();
+    },
+  },
+
   // Recurring access reviews (ee/access-reviews): due schedules start a
   // campaign. Master-only data (not synced).
   {

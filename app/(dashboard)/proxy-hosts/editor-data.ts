@@ -4,6 +4,7 @@
  * context the review shows. Every list is reduced to the fields the editor
  * needs; nothing secret (PEM, keys, password hashes) reaches the client.
  */
+import { crowdSecEditorGlobal } from "@/src/lib/crowdsec/editor";
 import { queryHostWafRules } from "@/src/lib/analytics/security";
 import { resolveRange } from "@/src/lib/analytics/range";
 import { isAnalyticsEnabled } from "@/src/lib/clickhouse/client";
@@ -252,6 +253,8 @@ export async function loadHostEditorData(
       Object.entries(messages).filter((entry): entry is [string, string] => typeof entry[1] === "string")
     ) as Record<number, string>,
     canReadWaf,
+    crowdsecGlobal: await crowdSecEditorGlobal(),
+    canReadCrowdSec: can(access, "crowdsec:read"),
     canWriteWaf: can(access, "waf:write"),
     wafRecentRules,
     rateLimitDefaults: rateLimit ? { enabled: Boolean(rateLimit.enabled), rules: rateLimit.rules.length } : null,

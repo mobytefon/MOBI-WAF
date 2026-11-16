@@ -41,19 +41,32 @@ describe("reproducible Caddy build", () => {
         .map((line) => line.trim().match(/^(github\.com\/\S+)\s+v\S+$/)?.[1])
         .filter((module): module is string => Boolean(module))
     );
+    // A line is either `module` or `package=module` (a plugin that lives in a
+    // sub-package of its module, e.g. caddy-crowdsec-bouncer/http).
     const plugins = buildScript
       .split("\n")
       .map((line) => line.trim())
-      .filter((line) => line.startsWith("github.com/") && !line.includes("caddyserver/caddy"));
+      .filter((line) => line.startsWith("github.com/") && !line.includes("caddyserver/caddy"))
+      .map((line) => {
+        const [pkg, module = pkg] = line.split("=");
+        return { pkg, module };
+      });
 
     expect(plugins.length).toBeGreaterThan(0);
     // Every build module must also be blank-imported in tools.go, otherwise
     // `go mod tidy` (run by Dependabot) prunes the require from go.mod.
-    for (const plugin of plugins) {
-      expect(requiredModules.has(plugin)).toBe(true);
-      expect(toolsFile).toContain(`_ "${plugin}"`);
+    for (const { pkg, module } of plugins) {
+      expect(requiredModules.has(module)).toBe(true);
+      expect(pkg === module || pkg.startsWith(`${module}/`)).toBe(true);
+      expect(toolsFile).toContain(`_ "${pkg}"`);
     }
+    expect(plugins).toContainEqual({
+      pkg: "github.com/hslatman/caddy-crowdsec-bouncer/http",
+      module: "github.com/hslatman/caddy-crowdsec-bouncer",
+    });
+    expect(dependabot).toMatch(/caddy-build:[\s\S]*"github\.com\/hslatman\/caddy-crowdsec-bouncer"/);
     expect(buildScript).toContain('module_version "$module"');
+    expect(buildScript).toContain('--with "$package@$version"');
     expect(buildScript).toContain('--replace "github.com/google/cel-go=github.com/google/cel-go@$cel_go_version"');
     expect(dockerfile).toContain("RUN sh ./update-compatibility-pins.sh");
     expect(dependabot).toMatch(/package-ecosystem: "gomod"[\s\S]*directory: "\/docker\/caddy"/);

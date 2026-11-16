@@ -1,0 +1,10 @@
+# Caddy's JSON access log, written by the caddy service to /logs/access.log
+# and mounted read-only here (CADDY_LOGS_DIR or the caddy-logs volume).
+# The waf-*.log files in the same directory are Coraza audit logs in another
+# format and are not read. ingressi-entrypoint.sh copies this file to
+# /etc/crowdsec/acquis.yaml on every start; add other sources as files in
+# /etc/crowdsec/acquis.d/ instead.
+filenames:
+  - /var/log/caddy/access.log
+labels:
+  type: caddy

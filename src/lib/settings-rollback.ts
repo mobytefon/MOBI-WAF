@@ -42,6 +42,7 @@ const CADDY_SETTING_KEYS = [
   "upstream_dns_resolution",
   "geoblock",
   "waf",
+  "crowdsec",
   "error_pages",
   "default_response",
   "response_headers",
