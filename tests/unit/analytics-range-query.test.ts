@@ -42,7 +42,8 @@ describe('resolveRange', () => {
     const r = resolveRange({ range }, NOW);
     expect(r.step).toBe(step);
     expect(r.buckets).toBe(buckets);
-    expect(r.end % step).toBe(0);
+    // Buckets are aligned to Vietnam time (UTC+7).
+    expect((r.end + 7 * 3600) % step).toBe(0);
     expect(r.end - step).toBeLessThanOrEqual(NOW);
     expect(r.end).toBeGreaterThan(NOW);
     expect(r.start).toBe(r.end - buckets * step);

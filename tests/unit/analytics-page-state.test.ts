@@ -308,8 +308,8 @@ describe('custom range form', () => {
   });
 
   it('reads and writes UTC date-time fields', () => {
-    expect(toDateTimeInput(NOW)).toBe('2026-10-03T12:00');
-    expect(fromDateTimeInput('2026-10-03T12:00')).toBe(NOW);
+    expect(toDateTimeInput(NOW)).toBe('2026-10-03T19:00');
+    expect(fromDateTimeInput('2026-10-03T19:00')).toBe(NOW);
     expect(fromDateTimeInput('yesterday')).toBeNull();
   });
 });
@@ -346,8 +346,8 @@ describe('presentation', () => {
     expect(formatStep(1800)).toBe('30 minutes');
     expect(formatStep(10_800)).toBe('3 hours');
     expect(formatStep(86_400)).toBe('day');
-    expect(formatLogTime(NOW + 2, false)).toBe('12:00:02');
-    expect(formatLogTime(NOW + 2, true)).toBe('3 Oct 12:00:02');
+    expect(formatLogTime(NOW + 2, false)).toBe('19:00:02');
+    expect(formatLogTime(NOW + 2, true)).toBe('3 Oct 19:00:02');
   });
 
   it('suggests the top values, configured hosts, status classes and outcomes', () => {
@@ -394,9 +394,9 @@ describe('CSV export', () => {
       previous: [2, null],
     });
     expect(csv.split('\r\n')).toEqual([
-      "Time (UTC),Served,'-evil.example.com,Total,Previous period",
-      '2026-10-03T10:00:00.000Z,3,1,4,2',
-      '2026-10-03T10:01:00.000Z,4,0,4,',
+      "Time (UTC+7),Served,'-evil.example.com,Total,Previous period",
+      '2026-10-03T17:00:00.000+07:00,3,1,4,2',
+      '2026-10-03T17:01:00.000+07:00,4,0,4,',
       '',
     ]);
   });

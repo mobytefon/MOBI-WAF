@@ -98,8 +98,8 @@ describe('URL state', () => {
   });
 
   it('reads and writes custom range fields in UTC', () => {
-    expect(toUtcInput(1_790_424_000)).toBe('2026-09-26T12:00');
-    expect(fromUtcInput('2026-09-26T12:00')).toBe(1_790_424_000);
+    expect(toUtcInput(1_790_424_000)).toBe('2026-09-26T19:00');
+    expect(fromUtcInput('2026-09-26T19:00')).toBe(1_790_424_000);
     expect(fromUtcInput('2026-09-26')).toBeNull();
     expect(fromUtcInput('')).toBeNull();
   });
@@ -125,7 +125,7 @@ describe('event wording', () => {
   });
 
   it('formats times in UTC and relative to now', () => {
-    expect(eventTime(1_790_424_005)).toBe('26 Sep 12:00:05');
+    expect(eventTime(1_790_424_005)).toBe('26 Sep 19:00:05');
     expect(relativeTime(1000, 1030)).toBe('just now');
     expect(relativeTime(1000, 1000 + 5 * 60)).toBe('5 min ago');
     expect(relativeTime(1000, 1000 + 3 * 3600)).toBe('3 h ago');

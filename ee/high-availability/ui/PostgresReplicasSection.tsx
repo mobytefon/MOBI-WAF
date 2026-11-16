@@ -24,7 +24,7 @@ export const REPLICA_ROLE_LABELS: Record<PostgresReplicasView["role"], string> =
 const ROLE_TONES: Record<PostgresReplicasView["role"], StatusTone> = { leader: "ok", follower: "info", refused: "bad", joining: "warn" };
 
 function utc(value: string | null): string {
-  return value ? `${formatDateTimeUtc(value)} UTC` : "Never";
+  return value ? `${formatDateTimeUtc(value)} UTC+7` : "Never";
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {

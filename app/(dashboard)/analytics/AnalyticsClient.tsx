@@ -112,7 +112,7 @@ function CompareSwitch({ checked, disabled, onChange, note }: { checked: boolean
 }
 
 function LiveStatus({ live, lastUpdated, loading }: { live: boolean; lastUpdated: number | null; loading: boolean }) {
-  const time = lastUpdated ? `${formatClockUtc(lastUpdated)} UTC` : null;
+  const time = lastUpdated ? `${formatClockUtc(lastUpdated)} UTC+7` : null;
   if (!time) return <StatusDot tone="off" label={loading ? "Loading" : "Not loaded"} />;
   if (live) return <StatusDot tone="ok" label={`Live · updated ${time}`} />;
   return <StatusDot tone="off" label={`Updated ${time}`} />;

@@ -43,7 +43,7 @@ export function ErrorShareLine({ buckets, stepSeconds, requests, errors, thresho
   const area = n > 0 ? `${line} L${x(n - 1).toFixed(1)} ${VIEW_H} L${x(0).toFixed(1)} ${VIEW_H} Z` : "";
   const summary =
     peak > 0
-      ? `Share of 5xx responses per bucket; highest ${percentText(peak)} at ${formatBucketTime(buckets[peakIndex], stepSeconds, true)} UTC`
+      ? `Share of 5xx responses per bucket; highest ${percentText(peak)} at ${formatBucketTime(buckets[peakIndex], stepSeconds, true)} UTC+7`
       : "Share of 5xx responses per bucket; no 5xx responses";
 
   return (

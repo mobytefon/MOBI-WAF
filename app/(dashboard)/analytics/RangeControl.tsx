@@ -94,7 +94,7 @@ export function RangeControl({
           </PopoverTrigger>
           <PopoverContent align="end" className="w-[300px] p-4">
             <form onSubmit={submit} className="flex flex-col gap-3" aria-label="Custom time range">
-              <p className="m-0 text-[13px] font-semibold">Custom range (UTC)</p>
+              <p className="m-0 text-[13px] font-semibold">Custom range (UTC+7)</p>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="analytics-range-from">From</Label>
                 <Input

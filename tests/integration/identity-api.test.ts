@@ -207,11 +207,11 @@ describe('passkeys', () => {
 });
 
 describe('interface preferences', () => {
-  it('default to the system theme, UTC and en-US, and save valid changes only', async () => {
+  it('default to the system theme, Vietnam time and en-US, and save valid changes only', async () => {
     expect(await (await preferencesRoute.GET(request('GET', 'alice', '/api/v1/preferences'))).json())
       .toEqual({
         theme: 'system',
-        timeZone: 'UTC',
+        timeZone: 'Asia/Ho_Chi_Minh',
         numberFormat: 'en-US',
         proxyHostsSort: 'default',
         proxyHostsGroup: 'none',
@@ -240,7 +240,7 @@ describe('interface preferences', () => {
       l4ProxyHostsSort: 'default',
       clientCertificatesSort: 'default',
     });
-    expect(await (await preferencesRoute.GET(request('GET', 'admin', '/api/v1/preferences'))).json()).toMatchObject({ timeZone: 'UTC' });
+    expect(await (await preferencesRoute.GET(request('GET', 'admin', '/api/v1/preferences'))).json()).toMatchObject({ timeZone: 'Asia/Ho_Chi_Minh' });
     expect(audited()).toEqual(['preferences_updated']);
 
     // The same values again change nothing and are not audited.

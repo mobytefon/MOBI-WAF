@@ -561,8 +561,8 @@ export default function ConsumersTab({
                 <TableRow>
                   <TableHead>Prefix</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Created (UTC)</TableHead>
-                  <TableHead>Last used (UTC)</TableHead>
+                  <TableHead>Created (UTC+7)</TableHead>
+                  <TableHead>Last used (UTC+7)</TableHead>
                   <TableHead className="text-right">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -689,7 +689,7 @@ export default function ConsumersTab({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Time (UTC)</TableHead>
+                  <TableHead>Time (UTC+7)</TableHead>
                   <TableHead>Kind</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Amount</TableHead>

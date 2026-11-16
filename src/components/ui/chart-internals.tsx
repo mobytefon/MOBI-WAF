@@ -62,7 +62,7 @@ export type StackedChartProps = {
   formatValue?: (value: number) => string;
   /** Formats a bucket for the axis (long = false) and for the tooltip and table (long = true). Default: UTC times. */
   formatBucket?: (ms: number, long: boolean) => string;
-  /** First column header of the accessible table. Default "Time (UTC)". */
+  /** First column header of the accessible table. Default "Time (UTC+7)". */
   bucketHeader?: string;
   /** Plot height in px; about 70% of it on charts narrower than 24rem. Default 264 (bars) or 200 (areas). */
   height?: number;
@@ -216,7 +216,7 @@ export function StackedChartBase({
   legend = true,
   formatValue = formatCompact,
   formatBucket,
-  bucketHeader = "Time (UTC)",
+  bucketHeader = "Time (UTC+7)",
   height,
   xTicks = 7,
   emptyText = DEFAULT_EMPTY,
@@ -227,7 +227,7 @@ export function StackedChartBase({
   const [active, setActive] = useState<number | null>(null);
   const hidden = new Set(hiddenProp ?? hiddenState);
   const step = stepSeconds ?? inferStepSeconds(buckets);
-  const label = formatBucket ?? ((ms: number, long: boolean) => formatBucketTime(ms, step, long) + (long ? " UTC" : ""));
+  const label = formatBucket ?? ((ms: number, long: boolean) => formatBucketTime(ms, step, long) + (long ? " UTC+7" : ""));
   const n = buckets.length;
   const plotHeight = height ?? (variant === "bar" ? 264 : 200);
 

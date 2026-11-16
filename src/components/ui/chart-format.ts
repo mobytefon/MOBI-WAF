@@ -3,6 +3,7 @@
  * and KPI tiles (StackedBarChart, StackedAreaChart, Sparkline, KpiTile,
  * TopList, ExpiryTimeline). Pure functions, safe on the server and the client.
  */
+import { zoned } from "@/src/lib/display-time";
 
 /** 61,817 · 18.4k · 214k · 1.24M · 12.3M · 2.10B, as the analytics design shows counts. */
 export function formatCompact(value: number): string {
@@ -116,7 +117,7 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 
 /** "3 Oct" in UTC. */
 export function formatDayUtc(ms: number): string {
-  const d = new Date(ms);
+  const d = zoned(ms);
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 }
 
@@ -126,7 +127,7 @@ export function formatDayUtc(ms: number): string {
  * ("3 Oct, 14:30" when `long`).
  */
 export function formatBucketTime(ms: number, stepSeconds: number, long = false): string {
-  const d = new Date(ms);
+  const d = zoned(ms);
   if (stepSeconds >= 86400) return formatDayUtc(ms);
   if (stepSeconds >= 10800) {
     const time = `${pad2(d.getUTCHours())}:00`;

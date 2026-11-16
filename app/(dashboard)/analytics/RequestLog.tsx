@@ -101,7 +101,7 @@ export function RequestLog({
             <thead>
               <tr className="text-left text-xs text-soft">
                 <th scope="col" className="whitespace-nowrap border-y border-line px-[18px] py-2 font-medium">
-                  Time (UTC)
+                  Time (UTC+7)
                 </th>
                 <th scope="col" className="border-y border-line px-2.5 py-2 font-medium">
                   Outcome

@@ -22,6 +22,8 @@ export type NavPage = {
   permission: Permission | null;
   /** Shown only while the entry's badge is up (the reviewer's own reviews). */
   onlyWithBadge?: boolean;
+  /** Left out of the sidebar's sub-links (still in the command palette); the parent page links to it. */
+  hideInSidebar?: boolean;
 };
 
 export type NavEntryKey =
@@ -111,10 +113,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
           { href: "/geo-blocking", label: "Geo blocking", permission: "settings:read" },
           { href: "/rate-limiting", label: "Rate limiting", permission: "settings:read" },
           { href: "/crowdsec", label: "CrowdSec", permission: "crowdsec:read" },
-          { href: "/crowdsec/alerts", label: "CrowdSec alerts", permission: "crowdsec:read" },
-          { href: "/crowdsec/decisions", label: "CrowdSec decisions", permission: "crowdsec:read" },
-          { href: "/crowdsec/whitelists", label: "CrowdSec whitelists", permission: "crowdsec:read" },
-          { href: "/crowdsec/settings", label: "CrowdSec settings", permission: "crowdsec:read" },
+          { href: "/crowdsec/alerts", label: "CrowdSec alerts", permission: "crowdsec:read", hideInSidebar: true },
+          { href: "/crowdsec/decisions", label: "CrowdSec decisions", permission: "crowdsec:read", hideInSidebar: true },
+          { href: "/crowdsec/whitelists", label: "CrowdSec whitelists", permission: "crowdsec:read", hideInSidebar: true },
+          { href: "/crowdsec/settings", label: "CrowdSec settings", permission: "crowdsec:read", hideInSidebar: true },
         ],
       },
       { key: "alerts", label: "Alerts", pages: [{ href: "/alerts", label: "Alerts", permission: "alerts:read" }], badge: "alertsFiring" },
