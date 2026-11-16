@@ -7,6 +7,7 @@ import { normalizeResponseHeadersSettings, ResponseHeadersValidationError } from
 import { normalizeProxyProtocolRanges } from "./proxy-protocol";
 import { ApiValidationError } from "./api-errors";
 import { WAF_TUNING_KEYS, wafTuningError } from "./waf-tuning";
+import { crowdSecSettingsError } from "./crowdsec/settings";
 
 export class SettingsValidationError extends Error {
   constructor(message: string) {
@@ -479,6 +480,7 @@ export function validateSettingsGroup(
     case "upstream-dns": validateUpstreamDns(value); break;
     case "geoblock": validateGeoBlock(value); break;
     case "waf": validateWaf(value, previousWaf); break;
+    case "crowdsec": { const error = crowdSecSettingsError(value); if (error) invalid(error); break; }
     case "error-pages": validateErrorPages(value); break;
     case "default-response": validateDefaultResponse(value); break;
     case "rate-limit": validateRateLimit(value); break;

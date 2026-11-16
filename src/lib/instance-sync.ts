@@ -92,6 +92,8 @@ export type SyncSettings = {
   rate_limit?: unknown | null;
   /** Response headers for every response. Optional for older masters. */
   response_headers?: unknown | null;
+  /** CrowdSec bouncer switches (src/lib/crowdsec/settings.ts). Optional for older masters. */
+  crowdsec?: unknown | null;
   /**
    * White-label branding with its logos (ee/white-label). Replicas serve the
    * forward-auth portal and sign-in pages too. Optional for older masters.
@@ -722,6 +724,7 @@ const SYNC_SETTING_ORDER = [
   "forward_auth",
   "rate_limit",
   "response_headers",
+  "crowdsec",
   "certificate_storage",
 ] as const;
 
@@ -763,6 +766,7 @@ async function readLiveSyncSource(): Promise<SyncSource> {
     forward_auth: await getSetting("forward_auth"),
     rate_limit: await getSetting("rate_limit"),
     response_headers: await getSetting("response_headers"),
+    crowdsec: await getSetting("crowdsec"),
     certificate_storage: await getSetting("certificate_storage"),
     white_label: await getSetting(WHITE_LABEL_SETTING_KEY),
   };
@@ -1647,6 +1651,7 @@ export async function applySyncPayload(received: SyncPayload): Promise<AppliedSy
     ["default_response", payload.settings.default_response ?? null],
     ["rate_limit", payload.settings.rate_limit ?? null],
     ["response_headers", payload.settings.response_headers ?? null],
+    ["crowdsec", payload.settings.crowdsec ?? null],
     ["certificate_storage", payload.settings.certificate_storage ?? null],
     [WHITE_LABEL_SETTING_KEY, payload.settings.white_label ?? null],
     // API monetization on replicas (validated with the payload).

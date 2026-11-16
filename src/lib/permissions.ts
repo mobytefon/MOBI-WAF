@@ -61,6 +61,12 @@ export const PERMISSION_AREAS = {
     actions: ["read", "write"],
     instanceWide: true,
   },
+  crowdsec: {
+    label: "CrowdSec",
+    description: "CrowdSec alerts, decisions (banning and unbanning addresses), whitelists and the global CrowdSec settings.",
+    actions: ["read", "write"],
+    instanceWide: true,
+  },
   analytics: {
     label: "Analytics",
     description: "Traffic analytics for every host, and asking questions about it in plain language (AI analyst).",

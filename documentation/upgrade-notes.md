@@ -2,6 +2,20 @@
 
 Pull the new images and recreate the containers with `docker compose pull && docker compose up -d`. (`docker compose restart` does not re-read `.env`.)
 
+## Unreleased: CrowdSec
+
+- **CrowdSec as a layer in front of the WAF (optional).**
+  - CrowdSec reads Caddy's access log and bans addresses by behaviour, and the community blocklist is pulled too.
+  - A bouncer in Caddy blocks them first on each host that uses it.
+  - Start the stack with `docker-compose.crowdsec.yml` and three new secrets in `.env`. Nothing changes without them.
+  - Turn it on under **Observe → Security events → CrowdSec → Settings**: for every host, or per host in the host editor.
+  - New pages: Dashboard, Alerts, Decisions (ban and unban), Whitelists (IP, CIDR, ASN, country, expression; applied by CrowdSec within seconds) and Settings.
+  - REST: `/api/v1/crowdsec/*`, the `crowdsec` settings group (`enabled`, `apply_to_all_hosts`, `ticker_interval`, `lapi_timeout`) and a proxy host's `crowdsec` field (`{ "enabled": true|false }` or `null`).
+  - New permission area `crowdsec` (read, write).
+  - See [crowdsec.md](crowdsec.md).
+- **The Caddy image includes the CrowdSec bouncer** (`github.com/hslatman/caddy-crowdsec-bouncer`). It does nothing unless CrowdSec is turned on.
+- No database migration. Whitelists are stored in the settings table.
+
 ## Upgrading to v2.11.0
 
 - **Trust client certificates by their certificate authority.** A proxy host's mTLS card has a new **Trust** switch: keep trusting individual roles and certificates, or trust a certificate authority and accept every client certificate it signs — an imported CA such as Cloudflare's origin pull CA, for example. The two modes are exclusive per host. REST: `ca_certificate_ids` in a host's mTLS settings. See [certificates.md](certificates.md#certificate-authorities).

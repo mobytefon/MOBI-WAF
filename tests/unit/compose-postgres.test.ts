@@ -82,7 +82,7 @@ describe('docker-compose.postgres.yml', () => {
     expect(web2).toContain('ports: !reset []');
     const volumes = web2Volumes();
     expect(volumes).toContain('web-2-data:/app/data');
-    expect(volumes).toContain('caddy-logs:/logs');
+    expect(volumes).toContain('${CADDY_LOGS_DIR:-caddy-logs}:/logs');
     expect(volumes).toContain('acme-ca:/acme-ca');
     expect(volumes).toContain('geoip-data:/usr/share/GeoIP:ro,z');
     // The l4-port-manager watches web's data volume (docker-compose.yml).
@@ -98,7 +98,7 @@ describe('docker-compose.postgres.yml', () => {
     expect(base.has('postgres')).toBe(false);
     const web = base.get('web')!;
     expect(web).toContain('DATABASE_URL: file:/app/data/ingressi.db');
-    for (const volume of ['caddy-manager-data:/app/data', 'caddy-logs:/logs', 'acme-ca:/acme-ca']) {
+    for (const volume of ['caddy-manager-data:/app/data', '${CADDY_LOGS_DIR:-caddy-logs}:/logs', 'acme-ca:/acme-ca']) {
       expect(web).toContain(`- ${volume}`);
     }
     expect(base.get('l4-port-manager')).toContain('- caddy-manager-data:/data');

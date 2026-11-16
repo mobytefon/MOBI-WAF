@@ -125,6 +125,13 @@ export type HostEditorData = {
   wafRecentRules?: { ruleId: number; message: string | null; events: number; blocked: number; topPath: string | null }[] | null;
   /** The user may add, change and remove WAF exclusions (waf:write). */
   canWriteWaf?: boolean;
+  /**
+   * The CrowdSec bouncer (src/lib/crowdsec): its global switches, or null
+   * when CrowdSec is not configured on this instance (the card is hidden).
+   */
+  crowdsecGlobal?: { enabled: boolean; appliesToAll: boolean } | null;
+  /** The user may open the CrowdSec pages (crowdsec:read). */
+  canReadCrowdSec?: boolean;
   rateLimitDefaults: { enabled: boolean; rules: number } | null;
   /** The global geo blocking rules: whether they are on, and whether they have any block rules. */
   geoblockGlobal: { enabled: boolean; blocks: boolean } | null;

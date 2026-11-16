@@ -20,6 +20,7 @@ import { AddButton, EditorCard, Field, FieldError, RemoveButton, TextField, Togg
 import { NativeSelect, SegmentedField, SelectField } from "./controls";
 import { rateLimitRow, type RateLimitRuleRow, type WafForm } from "./model";
 import { GeoBlockCard } from "./GeoBlockCard";
+import { CrowdSecCard } from "./CrowdSecCard";
 import { ChoiceCards } from "@/components/ui/ChoiceCards";
 
 const GLOBAL_MODE = { On: "blocking", DetectionOnly: "detection only", Off: "off" } as const;
@@ -581,6 +582,7 @@ export function SecuritySection() {
   const { data } = useEditor();
   return (
     <>
+      <CrowdSecCard />
       <WafCard />
       {data.host ? <ExclusionsCard /> : <NewHostExclusions />}
       <RateLimitCard />

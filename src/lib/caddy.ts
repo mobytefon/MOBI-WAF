@@ -97,6 +97,9 @@ import { buildRoleFingerprintMap, buildCertFingerprintMap, buildRoleCertIdMap } 
 import { getAccessRulesForHosts } from "./models/mtls-access-rules";
 import { buildWafHandlerEntry, resolveEffectiveWaf, wafDirectiveSource, wafExclusionsForHost } from "./caddy-waf";
 import { listWafExclusionRows, type WafExclusionRow } from "./models/waf-exclusions";
+import { crowdSecAppsEntry, loadCrowdSecCaddyContext, prependCrowdSecHandler, type CrowdSecCaddyContext } from "./crowdsec/caddy-crowdsec";
+import { CROWDSEC_SETTINGS_KEY } from "./crowdsec/settings";
+import type { CrowdSecHostConfig } from "./crowdsec/host-mode";
 import {
   buildHostRateLimit,
   buildRateLimitLogRoute,
@@ -491,6 +494,7 @@ type ProxyHostMeta = {
   geoblock?: GeoBlockSettings;
   geoblock_mode?: GeoBlockMode;
   waf?: WafHostConfig;
+  crowdsec?: CrowdSecHostConfig;
   mtls?: MtlsMeta;
   redirects?: RedirectRule[];
   rewrite?: RewriteConfig;
@@ -1202,6 +1206,8 @@ type BuildProxyRoutesOptions = {
   globalUpstreamDnsResolutionSettings: UpstreamDnsResolutionSettings | null;
   globalGeoBlock?: GeoBlockSettings | null;
   globalWaf?: WafSettings | null;
+  /** The CrowdSec bouncer (src/lib/crowdsec/caddy-crowdsec.ts); null when no host can use it. */
+  crowdsec?: CrowdSecCaddyContext | null;
   mtlsRbac?: {
     roleFingerprintMap: Map<number, Set<string>>;
     certFingerprintMap: Map<number, string>;
@@ -1457,6 +1463,10 @@ async function buildProxyRoutes(
     if (monetized) {
       handlers.unshift(buildMonetizationStripHandler());
     }
+
+    // CrowdSec: blocked addresses are turned away before anything else runs,
+    // on the host's routes and its sign-in routes (outpost, callback).
+    prependCrowdSecHandler(options.crowdsec, row.id, meta.crowdsec, handlers, earlyRateLimit);
 
     if (row.hstsEnabled) {
       const value = row.hstsSubdomains ? "max-age=63072000; includeSubDomains" : "max-age=63072000";
@@ -3131,6 +3141,7 @@ const CADDY_BUILD_SETTING_KEYS = [
   "upstream_dns_resolution",
   "geoblock",
   "waf",
+  CROWDSEC_SETTINGS_KEY,
   "trusted_proxies",
   "default_response",
   "rate_limit",
@@ -3414,6 +3425,7 @@ async function buildCaddyDocumentFromDatabase() {
 
   // Access list rules: a named route per list, and Blocked sources first on the server.
   const accessListConfig = buildAccessListCaddyConfig(accessListRecords, accessListRuleRecords, trustedProxiesSettings);
+  const crowdsec = await loadCrowdSecCaddyContext();
 
   const { routes: httpRoutes, errorRoutes: hostErrorRoutes, namedRoutes } = await buildProxyRoutes(
     proxyHostRows,
@@ -3424,6 +3436,7 @@ async function buildCaddyDocumentFromDatabase() {
       globalUpstreamDnsResolutionSettings: upstreamDnsResolutionSettings,
       globalGeoBlock: effectiveGlobalGeoBlock,
       globalWaf,
+      crowdsec,
       mtlsRbac: {
         roleFingerprintMap,
         certFingerprintMap,
@@ -3638,7 +3651,8 @@ async function buildCaddyDocumentFromDatabase() {
           ...(importedCertPems.length > 0 ? { certificates: { load_pem: importedCertPems } } : {})
         }
       } : {}),
-      ...l4App
+      ...l4App,
+      ...crowdSecAppsEntry(crowdsec)
     }
   };
 }

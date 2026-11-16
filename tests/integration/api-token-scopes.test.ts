@@ -91,7 +91,7 @@ function params(site: CallSite): { params: Promise<Record<string, string>> } {
   const values: Record<string, string> = new Proxy({}, { get: (_target, key) => (typeof key === 'string' ? '1' : undefined) });
   if (site.file.includes('settings/[group]')) {
     const area = site.permission.split(':')[0];
-    const group = area === 'instances' ? 'instance-mode' : area === 'waf' ? 'waf' : 'general';
+    const group = area === 'instances' ? 'instance-mode' : area === 'waf' ? 'waf' : area === 'crowdsec' ? 'crowdsec' : 'general';
     return { params: Promise.resolve({ group }) };
   }
   if (site.file.includes('[token]')) return { params: Promise.resolve({ token: 'not-a-token' }) };

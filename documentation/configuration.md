@@ -12,6 +12,7 @@ The web container is configured with environment variables. Copy `.env.example` 
 | `ADMIN_PASSWORD` | Admin password (see the [production requirements](security.md#production-checklist)) | `admin` (dev only) | **Yes** |
 | `BASE_URL` | Public URL where users access the dashboard.<br/>**Required for OAuth** - must match redirect URI | `http://localhost:3000` | **Yes** (if using OAuth) |
 | `KEEP_ALIVE_TIMEOUT` | How long the web server keeps an idle connection open, in milliseconds. Keep it above the idle time of any proxy in front (Caddy: 2 minutes), or the proxy can reuse a connection the server just closed and answer 502 | `125000` | No |
+| `CROWDSEC_BOUNCER_KEY` | Turns the CrowdSec integration on for this instance (with `CROWDSEC_LAPI_URL`, `CROWDSEC_MACHINE_PASSWORD` and the others set by `docker-compose.crowdsec.yml`). See [CrowdSec](crowdsec.md#environment-variables-web-service) | None | No |
 | `CADDY_API_URL` | Caddy Admin API endpoint | `http://caddy:2019` (prod)<br/>`http://localhost:2019` (dev) | No |
 | `DATABASE_URL` | The database: a SQLite file, or a `postgres://` URL to run on PostgreSQL (see [PostgreSQL](postgresql.md)) | `file:/app/data/ingressi.db` | No |
 | `CERTS_DIRECTORY` | Certificate storage directory | `./data/certs` | No |

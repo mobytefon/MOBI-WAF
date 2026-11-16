@@ -413,3 +413,24 @@ describe('host editor checks', () => {
     expect(fieldOfServerError('Something unexpected happened', 'routing')).toBeNull();
   });
 });
+
+describe('CrowdSec mode', () => {
+  it('reads the host setting and sends only a change, {} for the global setting', () => {
+    const stored = host({ crowdsec: { enabled: true } });
+    const saved = hostToForm(stored);
+    expect(saved.crowdsec).toBe('on');
+    expect(buildPayload(saved, saved, stored, false).host.crowdsec).toBeUndefined();
+    const off = edited(saved, (f) => ({ ...f, crowdsec: 'off' }));
+    expect(buildPayload(off, saved, stored, false).host.crowdsec).toEqual({ enabled: false });
+    const inherit = edited(saved, (f) => ({ ...f, crowdsec: 'inherit' }));
+    expect(buildPayload(inherit, saved, stored, false).host.crowdsec).toEqual({});
+  });
+
+  it('sends a new host its own mode only', () => {
+    const saved = newHostForm({ initialDomain: 'new.example.com', scopeTags: [] });
+    expect(saved.crowdsec).toBe('inherit');
+    expect(buildPayload(saved, saved, null, true).host.crowdsec).toBeUndefined();
+    const on = edited(saved, (f) => ({ ...f, crowdsec: 'on' }));
+    expect(buildPayload(on, saved, null, true).host.crowdsec).toEqual({ enabled: true });
+  });
+});

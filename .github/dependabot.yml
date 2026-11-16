@@ -76,6 +76,7 @@ updates:
           - "github.com/mholt/caddy-ratelimit"
           - "github.com/fuomag9/caddy-blocker-plugin"
           - "github.com/corazawaf/coraza-caddy/v2"
+          - "github.com/hslatman/caddy-crowdsec-bouncer"
           - "github.com/google/cel-go"
 
   # Docker base images updates

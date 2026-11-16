@@ -40,6 +40,7 @@ export const SYNC_FINGERPRINT_SETTING_KEYS = [
   "rate_limit",
   "response_headers",
   "monetization_replica",
+  "crowdsec",
 ] as const;
 
 /**
@@ -48,7 +49,7 @@ export const SYNC_FINGERPRINT_SETTING_KEYS = [
  * release still agree while the group is unused; once it is used, the older
  * slave cannot apply it anyway and the difference is real drift.
  */
-const OPTIONAL_FINGERPRINT_SETTING_KEYS: ReadonlySet<string> = new Set(["rate_limit", "monetization_replica", "response_headers"]);
+const OPTIONAL_FINGERPRINT_SETTING_KEYS: ReadonlySet<string> = new Set(["rate_limit", "monetization_replica", "response_headers", "crowdsec"]);
 
 /** The tables a sync payload carries, by their key in `payload.data`. */
 export const SYNC_FINGERPRINT_TABLES = [

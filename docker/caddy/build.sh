@@ -13,9 +13,13 @@ module_version() {
 caddy_version="$(module_version github.com/caddyserver/caddy/v2)"
 set -- "$caddy_version"
 
-while IFS= read -r module; do
+# Each line is a module path, or `package=module` when the Caddy plugin is a
+# sub-package of a module (the version is pinned per module in go.mod).
+while IFS= read -r entry; do
+  package="${entry%%=*}"
+  module="${entry#*=}"
   version="$(module_version "$module")"
-  set -- "$@" --with "$module@$version"
+  set -- "$@" --with "$package@$version"
 done <<'MODULES'
 github.com/caddy-dns/cloudflare
 github.com/caddy-dns/route53
@@ -46,6 +50,7 @@ github.com/mholt/caddy-ratelimit
 github.com/fuomag9/caddy-blocker-plugin
 github.com/corazawaf/coraza-caddy/v2
 github.com/pberkel/caddy-storage-redis
+github.com/hslatman/caddy-crowdsec-bouncer/http=github.com/hslatman/caddy-crowdsec-bouncer
 MODULES
 
 # Set by update-compatibility-pins.sh only while Caddy imports github.com/google/cel-go.
