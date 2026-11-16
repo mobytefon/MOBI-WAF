@@ -57,7 +57,7 @@ const PRESET_LABELS: Record<string, { label: string; previous: string }> = {
 
 function rangeView(range: ResolvedRange): SecurityRange {
   const preset = PRESET_LABELS[range.preset];
-  const custom = `${formatBucketTime(range.start * 1000, range.step, true)} to ${formatBucketTime(range.end * 1000, range.step, true)} UTC`;
+  const custom = `${formatBucketTime(range.start * 1000, range.step, true)} to ${formatBucketTime(range.end * 1000, range.step, true)} UTC+7`;
   return {
     preset: range.preset,
     start: range.start,

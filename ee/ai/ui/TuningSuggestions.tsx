@@ -154,7 +154,7 @@ export default function TuningSuggestions({ initialSuggestions, canWrite = true,
                   <Stat label="Clean clients" value={`${evidence.cleanClients} of ${evidence.clients}`} />
                   <Stat label="Normal clients" value={evidence.normalClients === null ? "n/a" : `${evidence.normalClients} of ${evidence.clients}`} />
                   <Stat label="Avg anomaly score" value={evidence.averageAnomalyScore === null ? "below threshold" : String(evidence.averageAnomalyScore)} />
-                  <Stat label="Last seen (UTC)" value={formatDateTimeUtc(Date.parse(evidence.lastSeen))} />
+                  <Stat label="Last seen (UTC+7)" value={formatDateTimeUtc(Date.parse(evidence.lastSeen))} />
                 </div>
                 {evidence.pathPrefixes.length > 0 && (
                   <div className="text-sm">

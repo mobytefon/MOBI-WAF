@@ -763,7 +763,7 @@ export function AccessListEditor({
       </div>
 
       {canWrite && (
-        <div className="fixed inset-x-3 bottom-[calc(68px_+_env(safe-area-inset-bottom))] z-30 md:bottom-4 md:left-[calc(15.5rem_+_max(2rem,_(100vw_-_15.5rem_-_1600px)_/_2_+_2rem))] md:right-[max(2rem,_calc((100vw_-_15.5rem_-_1600px)_/_2_+_2rem))]">
+        <div className="fixed inset-x-3 bottom-[calc(68px_+_env(safe-area-inset-bottom))] z-30 md:bottom-4 md:left-[calc(var(--sidebar-w,15.5rem)_+_max(2rem,_(100vw_-_var(--sidebar-w,15.5rem)_-_1600px)_/_2_+_2rem))] md:right-[max(2rem,_calc((100vw_-_var(--sidebar-w,15.5rem)_-_1600px)_/_2_+_2rem))]">
           <div
             data-testid="access-list-save-bar"
             className={cn("flex flex-wrap items-center gap-x-3.5 gap-y-2.5 rounded-2xl border bg-panel px-4 py-3 shadow-overlay", dirty ? "border-line2" : "border-line")}

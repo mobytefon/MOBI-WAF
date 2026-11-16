@@ -43,7 +43,7 @@ function duration(seconds: number): string {
 }
 
 function utc(value: string | null): string {
-  return value ? `${formatDateTimeUtc(value)} UTC` : "Never";
+  return value ? `${formatDateTimeUtc(value)} UTC+7` : "Never";
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {

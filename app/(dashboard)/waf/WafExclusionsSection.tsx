@@ -11,16 +11,17 @@ import { paginate } from "@/src/lib/pagination";
 import { deleteWafExclusionAction } from "./actions";
 import { WafExclusionDialog } from "./WafExclusionDialog";
 import type { WafExclusionRow, WafHostRow } from "./waf-settings-shared";
+import { zoned } from "@/src/lib/display-time";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "2 Oct, 18:31 UTC" this year, "2 Oct 2025" before. */
+/** "2 Oct, 18:31 UTC+7" this year, "2 Oct 2025" before. */
 function shortDate(iso: string): string {
-  const date = new Date(iso);
+  const date = zoned(iso);
   if (Number.isNaN(date.getTime())) return "";
   const day = `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`;
-  if (date.getUTCFullYear() !== new Date().getUTCFullYear()) return `${day} ${date.getUTCFullYear()}`;
-  return `${day}, ${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")} UTC`;
+  if (date.getUTCFullYear() !== zoned(Date.now()).getUTCFullYear()) return `${day} ${date.getUTCFullYear()}`;
+  return `${day}, ${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")} UTC+7`;
 }
 
 /** The host an exclusion is limited to, by its first domain; null for a global one. */

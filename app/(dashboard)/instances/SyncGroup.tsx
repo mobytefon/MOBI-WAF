@@ -37,7 +37,7 @@ type Mode = InstanceSyncProps["mode"];
 export const MODE_LABELS: Record<Mode, string> = { standalone: "Standalone", master: "Master", slave: "Replica" };
 
 function at(value: string | null): string {
-  return value ? `${formatDateTimeUtc(value)} UTC` : "never";
+  return value ? `${formatDateTimeUtc(value)} UTC+7` : "never";
 }
 
 export default function SyncGroup({
@@ -486,7 +486,7 @@ function SyncKeyPinStatus({
     );
   }
   const label = SYNC_KEY_PIN_SOURCE_LABELS[pin.source] ?? pin.source;
-  const pinnedAt = Number.isNaN(Date.parse(pin.pinnedAt)) ? null : `${formatDateTimeUtc(pin.pinnedAt)} UTC`;
+  const pinnedAt = Number.isNaN(Date.parse(pin.pinnedAt)) ? null : `${formatDateTimeUtc(pin.pinnedAt)} UTC+7`;
   return (
     <span className="block text-xs text-muted-foreground">
       Sync key <span className="num">{pin.keyId}</span>, pinned{pinnedAt ? ` ${pinnedAt}` : ""}

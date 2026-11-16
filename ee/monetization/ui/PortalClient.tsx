@@ -225,7 +225,7 @@ function Summary({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Time (UTC)</TableHead>
+                <TableHead>Time (UTC+7)</TableHead>
                 <TableHead>What</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="text-right">Balance</TableHead>

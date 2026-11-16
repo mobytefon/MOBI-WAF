@@ -83,10 +83,10 @@ describe('chart-format', () => {
     expect(chartScale([])).toMatchObject({ max: 2 });
   });
 
-  it('labels buckets in UTC by their width', () => {
-    expect(formatBucketTime(T0 + 30 * 60_000, 60)).toBe('10:30');
-    expect(formatBucketTime(T0 + 30 * 60_000, 1800, true)).toBe('3 Oct, 10:30');
-    expect(formatBucketTime(T0 - 4 * HOUR, 10800)).toBe('Sat 06:00');
+  it('labels buckets in Vietnam time (UTC+7) by their width', () => {
+    expect(formatBucketTime(T0 + 30 * 60_000, 60)).toBe('17:30');
+    expect(formatBucketTime(T0 + 30 * 60_000, 1800, true)).toBe('3 Oct, 17:30');
+    expect(formatBucketTime(T0 - 4 * HOUR, 10800)).toBe('Sat 13:00');
     expect(formatBucketTime(T0, 86400)).toBe('3 Oct');
     expect(inferStepSeconds([T0, T0 + HOUR])).toBe(3600);
     expect(inferStepSeconds([T0])).toBe(60);
@@ -195,9 +195,9 @@ describe('StackedBarChart', () => {
     expect(start).toBeGreaterThan(-1);
     const table = html.slice(start);
     expect(table).toContain('<caption>Requests by outcome</caption>');
-    expect(table).toContain('<th scope="col">Time (UTC)</th><th scope="col">Served</th><th scope="col">Blocked by WAF</th><th scope="col">Total</th><th scope="col">Previous 24 hours</th>');
-    expect(table).toContain('<tr><th scope="row">3 Oct, 10:00 UTC</th><td>100</td><td>5</td><td>105</td><td>90</td></tr>');
-    expect(table).toContain('<tr><th scope="row">3 Oct, 11:00 UTC</th><td>200</td><td>0</td><td>200</td><td>–</td></tr>');
+    expect(table).toContain('<th scope="col">Time (UTC+7)</th><th scope="col">Served</th><th scope="col">Blocked by WAF</th><th scope="col">Total</th><th scope="col">Previous 24 hours</th>');
+    expect(table).toContain('<tr><th scope="row">3 Oct, 17:00 UTC+7</th><td>100</td><td>5</td><td>105</td><td>90</td></tr>');
+    expect(table).toContain('<tr><th scope="row">3 Oct, 18:00 UTC+7</th><td>200</td><td>0</td><td>200</td><td>–</td></tr>');
     expect(html).toContain('data-testid="chart-previous"');
     expect(html).toContain('stroke-dasharray:5 4');
     expect(html).toContain('Previous 24 hours</span>');

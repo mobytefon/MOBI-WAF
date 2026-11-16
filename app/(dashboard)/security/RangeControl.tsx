@@ -8,6 +8,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/utils";
 import type { SecurityRange } from "./security-types";
 import { securityHref, type SecurityQuery } from "./security-view";
+import { fromZonedInputValue, zoned } from "@/src/lib/display-time";
 
 const PRESETS = ["1h", "24h", "7d", "30d"] as const;
 /** The longest custom range the analytics queries accept (src/lib/analytics/range.ts). */
@@ -15,7 +16,7 @@ const MAX_CUSTOM_SECONDS = 92 * 86_400;
 
 /** "YYYY-MM-DDTHH:mm" of a Unix time, in UTC (the page shows UTC times). */
 export function toUtcInput(unix: number): string {
-  const d = new Date(unix * 1000);
+  const d = zoned(unix * 1000);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
@@ -23,8 +24,7 @@ export function toUtcInput(unix: number): string {
 /** A datetime-local value read as UTC (the trailing "Z"), or null. */
 export function fromUtcInput(value: string): number | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
-  const ms = new Date(`${value}Z`).getTime();
-  return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+  return fromZonedInputValue(value);
 }
 
 /**
@@ -93,11 +93,11 @@ export function RangeControl({ query, range, onNavigate }: { query: SecurityQuer
             apply();
           }}
         >
-          <Input type="datetime-local" aria-label="From (UTC)" value={from} onChange={(event) => setFrom(event.target.value)} className="num h-9 w-[200px]" />
+          <Input type="datetime-local" aria-label="From (UTC+7)" value={from} onChange={(event) => setFrom(event.target.value)} className="num h-9 w-[200px]" />
           <span aria-hidden="true" className="text-soft">
             to
           </span>
-          <Input type="datetime-local" aria-label="To (UTC)" value={to} onChange={(event) => setTo(event.target.value)} className="num h-9 w-[200px]" />
+          <Input type="datetime-local" aria-label="To (UTC+7)" value={to} onChange={(event) => setTo(event.target.value)} className="num h-9 w-[200px]" />
           <Button type="submit" size="sm" variant="secondary">
             Apply range
           </Button>

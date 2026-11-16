@@ -230,7 +230,7 @@ function PeakNote({ data }: { data: SecurityPageData }) {
   return (
     <div className="flex flex-col gap-1 rounded-[10px] border border-line2 bg-panel2 px-3 py-2.5 text-xs">
       <span className="text-[13px] font-semibold">
-        Peak: {formatBucketTime(peak.ts * 1000, range.step, true)} UTC · {plural(peak.value, "request")} stopped
+        Peak: {formatBucketTime(peak.ts * 1000, range.step, true)} UTC+7 · {plural(peak.value, "request")} stopped
       </span>
       <span className="text-muted-foreground">{sentences.join(" ")}</span>
       <Link
@@ -445,7 +445,7 @@ function TopSources({ data, blocked, onBlock }: { data: SecurityPageData; blocke
                     <td className="num whitespace-nowrap px-2.5 py-2.5 text-muted-foreground" title={source.rules.join(", ") || undefined}>
                       {source.rules.length > 0 ? source.rules.slice(0, 2).join(", ") + (source.rules.length > 2 ? ` +${source.rules.length - 2}` : "") : "–"}
                     </td>
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-muted-foreground" title={`${eventTime(source.lastSeen)} UTC`}>
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-muted-foreground" title={`${eventTime(source.lastSeen)} UTC+7`}>
                       {relativeTime(source.lastSeen, now)}
                     </td>
                     <td className="num px-2.5 py-2.5 text-right">{formatCount(events)}</td>

@@ -580,9 +580,9 @@ describe('Instance sync page', () => {
     });
     expect(JSON.stringify(props)).not.toContain(TOKEN);
 
-    expect(html).toContain(`${pin.keyId}</span>, pinned ${formatDateTimeUtc(pin.pinnedAt)} UTC (first use)`);
-    expect(html).toContain(`${envPin.keyId}</span>, pinned ${formatDateTimeUtc(envPin.pinnedAt)} UTC (rotated)`);
-    expect(html).toContain(`${orphanPin.keyId}</span>, pinned ${formatDateTimeUtc(orphanPin.pinnedAt)} UTC (set by an administrator)`);
+    expect(html).toContain(`${pin.keyId}</span>, pinned ${formatDateTimeUtc(pin.pinnedAt)} UTC+7 (first use)`);
+    expect(html).toContain(`${envPin.keyId}</span>, pinned ${formatDateTimeUtc(envPin.pinnedAt)} UTC+7 (rotated)`);
+    expect(html).toContain(`${orphanPin.keyId}</span>, pinned ${formatDateTimeUtc(orphanPin.pinnedAt)} UTC+7 (set by an administrator)`);
     expect(html).toContain(`${explicitKey.keyId}</span> (set in INSTANCE_SLAVES)`);
     expect(html).toContain(`${fullKey.keyId}</span> (full key set in INSTANCE_SLAVES)`);
     expect(html.match(/Sync key not pinned yet</g)).toHaveLength(2);

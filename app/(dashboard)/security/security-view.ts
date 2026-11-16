@@ -3,6 +3,7 @@
  * browser: the sources and their colours, event wording, the page's URL
  * state, links to the analytics page, and "copy as curl".
  */
+import { zoned } from "@/src/lib/display-time";
 
 // ── Sources ─────────────────────────────────────────────────────────────
 
@@ -124,7 +125,7 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 
 /** "3 Oct 11:35:58" in UTC. */
 export function eventTime(ts: number): string {
-  const d = new Date(ts * 1000);
+  const d = zoned(ts * 1000);
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
 }
 

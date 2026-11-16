@@ -168,7 +168,7 @@ export function SecurityEvents({
           <table className="w-full min-w-[900px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-line text-left text-xs text-soft">
-                <th scope="col" className="px-[18px] py-2 font-medium">Time (UTC)</th>
+                <th scope="col" className="px-[18px] py-2 font-medium">Time (UTC+7)</th>
                 <th scope="col" className="px-2.5 py-2 font-medium">Action</th>
                 <th scope="col" className="px-2.5 py-2 font-medium">Reason</th>
                 <th scope="col" className="px-2.5 py-2 font-medium">Request</th>

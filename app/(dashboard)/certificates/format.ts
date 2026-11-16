@@ -10,20 +10,21 @@ import type {
   CertificateOverviewRow,
   CertificateUser,
 } from "@/src/lib/certificate-renewal";
+import { zoned } from "@/src/lib/display-time";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAY_MS = 86_400_000;
 
 /** "3 Nov 2026". */
 export function formatDate(value: string | number): string {
-  const d = new Date(value);
+  const d = zoned(value);
   if (Number.isNaN(d.getTime())) return "–";
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 /** "4 Oct". */
 export function formatShortDate(value: string | number): string {
-  const d = new Date(value);
+  const d = zoned(value);
   if (Number.isNaN(d.getTime())) return "–";
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 }
@@ -48,12 +49,12 @@ export function timeLeftText(validTo: string, now: number): string {
   return plural(Math.floor(days / 365.25), "year", "years");
 }
 
-/** "3 Nov 12:05 UTC" for a check time. */
+/** "3 Nov 12:05 UTC+7" for a check time. */
 export function formatCheckedAt(value: string | number): string {
-  const d = new Date(value);
+  const d = zoned(value);
   if (Number.isNaN(d.getTime())) return "–";
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC+7`;
 }
 
 export type RenewalView = {

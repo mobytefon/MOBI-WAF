@@ -32,17 +32,19 @@ import {
   isProxyHostsGroupPreference,
   isProxyHostsSortPreference,
 } from "./list-sort-preferences";
+import { DISPLAY_TIME_ZONE } from "./display-time";
 
 export type { UserPreferences } from "./preferences-shared";
 
 /** The account's preferences; the defaults (system theme, UTC, en-US) when it has none. */
 export async function getUserPreferences(userId: number): Promise<UserPreferences> {
   const row = await first(appDb.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1));
-  if (!row) return { ...DEFAULT_PREFERENCES };
+  // MOBI-WAF: accounts without saved preferences see Vietnam time (UTC+7).
+  if (!row) return { ...DEFAULT_PREFERENCES, timeZone: DISPLAY_TIME_ZONE };
   // Values that are no longer valid (a time zone the runtime does not know) fall back to the default.
   return {
     theme: isTheme(row.theme) ? row.theme : DEFAULT_PREFERENCES.theme,
-    timeZone: isValidTimeZone(row.timeZone) ? row.timeZone : DEFAULT_PREFERENCES.timeZone,
+    timeZone: isValidTimeZone(row.timeZone) ? row.timeZone : DISPLAY_TIME_ZONE,
     numberFormat: isNumberFormat(row.numberFormat) ? row.numberFormat : DEFAULT_PREFERENCES.numberFormat,
     proxyHostsSort: isProxyHostsSortPreference(row.proxyHostsSort) ? row.proxyHostsSort : DEFAULT_PREFERENCES.proxyHostsSort,
     proxyHostsGroup: isProxyHostsGroupPreference(row.proxyHostsGroup) ? row.proxyHostsGroup : DEFAULT_PREFERENCES.proxyHostsGroup,

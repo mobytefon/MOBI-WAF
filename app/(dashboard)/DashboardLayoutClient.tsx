@@ -1,12 +1,13 @@
 "use client";
 
-import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
+import { type CSSProperties, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   ArrowLeftRight, Bell, ChartColumn, ChevronsUpDown, CircleCheck, ClipboardCheck, Coins,
   Ellipsis, FileCheck2, FileJson2, History, KeyRound, Layers, LayoutGrid, LockKeyhole, LogOut, Menu, Network, Palette,
+  PanelLeftClose, PanelLeftOpen,
   ScrollText, Search, Server, ShieldAlert, ShieldCheck, SlidersHorizontal, UserRound, Users, type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -24,6 +25,8 @@ import type { NavEnvironment, NavSummary } from "@/src/lib/nav-summary";
 import { useBranding } from "@/ee/white-label/ui/BrandingProvider";
 import { BrandLogo, hasLogo, PoweredBy, SupportLinks } from "@/ee/white-label/ui/BrandParts";
 import { CommandPaletteProvider, useCommandPalette } from "@/components/command-palette/CommandPalette";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED, useSidebarCollapsed } from "./sidebar-collapse";
 
 type User = {
   id: string;
@@ -106,14 +109,48 @@ function NavLink({
   badge,
   plainBadge,
   onNavigate,
+  collapsed,
 }: {
   entry: VisibleNavEntry;
   current: boolean;
   badge?: NavBadge | null;
   plainBadge?: boolean;
   onNavigate?: () => void;
+  /** Icon only, the label in a tooltip (the collapsed desktop sidebar). */
+  collapsed?: boolean;
 }) {
   const Icon = ICONS[entry.key];
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            href={entry.href}
+            onClick={onNavigate}
+            aria-current={current ? "page" : undefined}
+            className={cn(
+              "relative grid h-[34px] w-full place-items-center rounded-md transition-colors",
+              current ? "bg-brand-tint text-foreground" : "text-muted-foreground hover:bg-raise hover:text-foreground",
+            )}
+          >
+            <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
+            <span className="sr-only">{entry.label}</span>
+            {badge && (
+              <span
+                aria-hidden="true"
+                className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", badge.tone === "warn" ? "bg-warn" : "bg-soft")}
+              />
+            )}
+            {badge && <span className="sr-only">{badge.label}</span>}
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          {entry.label}
+          {badge ? ` · ${badge.text}` : ""}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
   return (
     <Link
       href={entry.href}
@@ -150,11 +187,12 @@ function currentPage(pathname: string, pages: readonly { href: string }[]): stri
  * click away whatever the page itself shows.
  */
 function SubLinks({ entry, pathname, onNavigate }: { entry: VisibleNavEntry; pathname: string; onNavigate?: () => void }) {
-  if (entry.openPages.length < 2) return null;
-  const active = currentPage(pathname, entry.openPages);
+  const pages = entry.openPages.filter((page) => !page.hideInSidebar);
+  if (pages.length < 2) return null;
+  const active = currentPage(pathname, pages);
   return (
     <ul aria-label={entry.label} className="mb-1 ml-[19px] flex flex-col gap-0.5 border-l border-line pl-2">
-      {entry.openPages.map((page) => (
+      {pages.map((page) => (
         <li key={page.href}>
           <Link
             href={page.href}
@@ -175,8 +213,44 @@ function SubLinks({ entry, pathname, onNavigate }: { entry: VisibleNavEntry; pat
   );
 }
 
-function BrandRow() {
+function CollapseButton({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  const Icon = collapsed ? PanelLeftOpen : PanelLeftClose;
+  const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={label}
+          aria-expanded={!collapsed}
+          aria-keyshortcuts="Control+B Meta+B"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-raise hover:text-foreground"
+          data-testid="sidebar-collapse"
+        >
+          <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right">{label} (Ctrl B)</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function BrandRow({ collapsed, onToggleCollapse }: { collapsed?: boolean; onToggleCollapse?: () => void }) {
   const branding = useBranding();
+  if (collapsed) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-1">
+        <span aria-hidden="true" className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] bg-primary text-primary-foreground">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M11 8v3M11 17v3M22 8v12M6 14h12M15 11l3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <span className="sr-only">{branding.productName}</span>
+        {onToggleCollapse && <CollapseButton collapsed onToggle={onToggleCollapse} />}
+      </div>
+    );
+  }
   return (
     <div className="flex items-center gap-2 px-2 py-1">
       {hasLogo(branding) ? (
@@ -188,7 +262,8 @@ function BrandRow() {
           </svg>
         </span>
       )}
-      <span className="min-w-0 truncate text-[17px] font-bold tracking-[-0.01em]">{branding.productName}</span>
+      <span className="min-w-0 flex-1 truncate text-[17px] font-bold tracking-[-0.01em]">{branding.productName}</span>
+      {onToggleCollapse && <CollapseButton collapsed={false} onToggle={onToggleCollapse} />}
     </div>
   );
 }
@@ -248,11 +323,29 @@ function EnvironmentSwitcher({ environment, compact }: { environment: NavEnviron
   );
 }
 
-function SearchButton({ onOpen }: { onOpen: () => void }) {
+function SearchButton({ onOpen, collapsed }: { onOpen: () => void; collapsed?: boolean }) {
   const [shortcut, setShortcut] = useState("⌘K");
   useEffect(() => {
     if (!/mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent)) setShortcut("Ctrl K");
   }, []);
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-label="Search or jump to…"
+            aria-keyshortcuts="Meta+K Control+K"
+            className="grid h-9 w-full place-items-center rounded-md border border-line text-muted-foreground transition-colors hover:bg-raise hover:text-foreground"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right">Search ({shortcut})</TooltipContent>
+      </Tooltip>
+    );
+  }
   return (
     <button
       type="button"
@@ -267,7 +360,7 @@ function SearchButton({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-function UserMenu({ user, apiDocs }: { user: User; apiDocs: VisibleNavEntry | null }) {
+function UserMenu({ user, apiDocs, collapsed }: { user: User; apiDocs: VisibleNavEntry | null; collapsed?: boolean }) {
   const { theme, setTheme } = useTheme();
   const logoutForm = useRef<HTMLFormElement>(null);
   const name = user.name || user.email || "Account";
@@ -277,7 +370,10 @@ function UserMenu({ user, apiDocs }: { user: User; apiDocs: VisibleNavEntry | nu
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={`Your account: ${name}`}
-          className="mt-1.5 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-raise"
+          className={cn(
+            "mt-1.5 flex w-full items-center gap-2.5 rounded-lg py-2 text-left transition-colors hover:bg-raise",
+            collapsed ? "justify-center px-0" : "px-2.5",
+          )}
           data-testid="account-menu"
         >
           {user.image ? (
@@ -287,13 +383,21 @@ function UserMenu({ user, apiDocs }: { user: User; apiDocs: VisibleNavEntry | nu
               {initials(name)}
             </span>
           )}
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate font-semibold">{user.name ?? "Administrator"}</span>
-            {user.email && <span className="truncate text-xs text-muted-foreground">{user.email}</span>}
-          </span>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          {!collapsed && (
+            <>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate font-semibold">{user.name ?? "Administrator"}</span>
+                {user.email && <span className="truncate text-xs text-muted-foreground">{user.email}</span>}
+              </span>
+              <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            </>
+          )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="start" className="w-(--radix-dropdown-menu-trigger-width) min-w-56">
+        <DropdownMenuContent
+          side={collapsed ? "right" : "top"}
+          align={collapsed ? "end" : "start"}
+          className={cn(!collapsed && "w-(--radix-dropdown-menu-trigger-width)", "min-w-56")}
+        >
           <DropdownMenuItem asChild>
             <Link href="/profile">
               <UserRound aria-hidden="true" />
@@ -333,11 +437,17 @@ function NavContent({
   user,
   summary,
   onNavigate,
+  collapsed = false,
+  onToggleCollapse,
 }: {
   pathname: string;
   user: User;
   summary: NavSummary;
   onNavigate?: () => void;
+  /** The desktop sidebar folded to its icons. */
+  collapsed?: boolean;
+  /** Shows the collapse button (the desktop sidebar only). */
+  onToggleCollapse?: () => void;
 }) {
   const branding = useBranding();
   const palette = useCommandPalette();
@@ -347,17 +457,18 @@ function NavContent({
   const current = currentEntryKey(pathname);
 
   return (
-    <div className="flex h-full flex-col gap-3.5 px-3 py-4">
-      <BrandRow />
-      {summary.environment && <EnvironmentSwitcher environment={summary.environment} />}
-      <SearchButton onOpen={() => { onNavigate?.(); palette.open(); }} />
+    <div className={cn("flex h-full flex-col gap-3.5 py-4", collapsed ? "px-2" : "px-3")}>
+      <BrandRow collapsed={collapsed} onToggleCollapse={onToggleCollapse} />
+      {summary.environment && !collapsed && <EnvironmentSwitcher environment={summary.environment} />}
+      <SearchButton collapsed={collapsed} onOpen={() => { onNavigate?.(); palette.open(); }} />
 
       <nav aria-label="Main navigation" className="-mx-1 flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-1">
         {groups.map((group) => (
           <div key={group.title ?? "start"} role="group" aria-label={group.title ?? undefined} className="flex flex-col gap-0.5">
-            {group.title && (
+            {group.title && !collapsed && (
               <div aria-hidden="true" className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-soft">{group.title}</div>
             )}
+            {group.title && collapsed && <div aria-hidden="true" className="mx-1.5 mb-1 border-t border-line" />}
             {group.entries.map((entry) => (
               <Fragment key={entry.key}>
                 <NavLink
@@ -365,8 +476,9 @@ function NavContent({
                   current={current === entry.key}
                   badge={entry.badge ? summary.badges[entry.badge] : null}
                   onNavigate={onNavigate}
+                  collapsed={collapsed}
                 />
-                {current === entry.key && <SubLinks entry={entry} pathname={pathname} onNavigate={onNavigate} />}
+                {current === entry.key && !collapsed && <SubLinks entry={entry} pathname={pathname} onNavigate={onNavigate} />}
               </Fragment>
             ))}
           </div>
@@ -382,13 +494,14 @@ function NavContent({
               badge={entry.badge ? summary.badges[entry.badge] : null}
               plainBadge
               onNavigate={onNavigate}
+              collapsed={collapsed}
             />
-            {current === entry.key && <SubLinks entry={entry} pathname={pathname} onNavigate={onNavigate} />}
+            {current === entry.key && !collapsed && <SubLinks entry={entry} pathname={pathname} onNavigate={onNavigate} />}
           </Fragment>
         ))}
-        <UserMenu user={user} apiDocs={apiDocs} />
-        <SupportLinks branding={branding} className="justify-start px-2.5 pt-1" />
-        <PoweredBy branding={branding} className="pt-1" />
+        <UserMenu user={user} apiDocs={apiDocs} collapsed={collapsed} />
+        {!collapsed && <SupportLinks branding={branding} className="justify-start px-2.5 pt-1" />}
+        {!collapsed && <PoweredBy branding={branding} className="pt-1" />}
       </div>
     </div>
   );
@@ -453,18 +566,30 @@ function Shell({
   children,
 }: { user: User; summary: NavSummary; children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, toggleCollapsed, animateSidebar] = useSidebarCollapsed();
   const pathname = usePathname();
   const branding = useBranding();
   const title = currentLabel(pathname, user, summary) || branding.productName;
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-62 flex-col border-r border-line bg-panel md:flex">
-        <NavContent
-          pathname={pathname}
-          user={user}
-          summary={summary}
-        />
+    // --sidebar-w: the desktop sidebar's width, for main's margin and the editors' fixed save bars.
+    <div className="flex min-h-screen" style={{ "--sidebar-w": collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH } as CSSProperties}>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 hidden w-(--sidebar-w) flex-col border-r border-line bg-panel md:flex",
+          animateSidebar && "transition-[width] duration-150",
+        )}
+        data-collapsed={collapsed ? "true" : undefined}
+      >
+        <TooltipProvider delayDuration={200}>
+          <NavContent
+            pathname={pathname}
+            user={user}
+            summary={summary}
+            collapsed={collapsed}
+            onToggleCollapse={toggleCollapsed}
+          />
+        </TooltipProvider>
       </aside>
 
       <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-1 border-b border-line bg-panel px-2 pt-[env(safe-area-inset-top)] md:hidden">
@@ -496,7 +621,7 @@ function Shell({
       </Sheet>
 
       {/* overflow-x: clip, not hidden: hidden would make main a scroll container and break position: sticky inside pages. */}
-      <main className="mt-14 min-w-0 flex-1 overflow-x-clip pb-24 md:ml-62 md:mt-0 md:pb-0">
+      <main className={cn("mt-14 min-w-0 flex-1 overflow-x-clip pb-24 md:ml-(--sidebar-w) md:mt-0 md:pb-0", animateSidebar && "transition-[margin] duration-150")}>
         <div className="mx-auto max-w-[1600px] px-4 py-4 md:px-8 md:pt-6 md:pb-14">{children}</div>
       </main>
 

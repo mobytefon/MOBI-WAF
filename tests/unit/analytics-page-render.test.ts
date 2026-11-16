@@ -219,7 +219,7 @@ describe('request log', () => {
     expect(html).toContain('Blocked by WAF');
     expect(html).toContain('942100');
     expect(html).toContain('Geo rule');
-    expect(html).toContain('11:36:02');
+    expect(html).toContain('18:36:02');
     expect(html).toContain('Show more');
   });
 

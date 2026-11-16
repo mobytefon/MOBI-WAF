@@ -16,7 +16,7 @@ export type PullAgentReplica = {
 };
 
 function at(value: string | null): string {
-  return value ? `${formatDateTimeUtc(value)} UTC` : "never";
+  return value ? `${formatDateTimeUtc(value)} UTC+7` : "never";
 }
 
 /** A pull replica's own view: where it polls, and how its last polls went. */

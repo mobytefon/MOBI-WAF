@@ -55,7 +55,7 @@ export default function GeoBlockingClient({ geoblock, geoip, canSave, canOpenSec
             <SettingRow
               key={database.path}
               label={database.name}
-              note={database.updatedAt ? `Updated ${formatDateTimeUtc(database.updatedAt)} UTC` : undefined}
+              note={database.updatedAt ? `Updated ${formatDateTimeUtc(database.updatedAt)} UTC+7` : undefined}
             >
               <span className="flex min-h-9 items-center">
                 <StatusDot

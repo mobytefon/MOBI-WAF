@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { zoned } from "@/src/lib/display-time";
 
 export type ActionResult = { success: boolean; message?: string };
 export type SettingsFormAction = (prevState: ActionResult | null, formData: FormData) => Promise<ActionResult>;
@@ -351,8 +352,9 @@ function TrackedGroup({
   );
 }
 
-function formatTimeUtc(date: Date): string {
-  return `${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")} UTC`;
+function formatTimeUtc(value: Date): string {
+  const date = zoned(value);
+  return `${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")} UTC+7`;
 }
 
 function SaveBar({

@@ -51,7 +51,7 @@ export function X402PaymentsTable({ page }: { page: X402PaymentPage }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Time (UTC)</TableHead>
+            <TableHead>Time (UTC+7)</TableHead>
             <TableHead>Host</TableHead>
             <TableHead>Payer</TableHead>
             <TableHead className="text-right">Amount</TableHead>

@@ -219,7 +219,7 @@ export default function IncidentEditor({
         <CardHeader>
           <CardTitle className="text-base">Incident</CardTitle>
           <CardDescription>
-            Created {formatDateTimeUtc(incident.createdAt)} UTC by {incident.createdBy.name ?? `user ${incident.createdBy.userId ?? "?"}`}
+            Created {formatDateTimeUtc(incident.createdAt)} UTC+7 by {incident.createdBy.name ?? `user ${incident.createdBy.userId ?? "?"}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
@@ -290,7 +290,7 @@ export default function IncidentEditor({
           <div className="space-y-1.5">
             <CardTitle className="text-base">Facts</CardTitle>
             <CardDescription>
-              Aggregated figures (no log lines or client addresses){incident.factsCollectedAt ? `, collected ${formatDateTimeUtc(incident.factsCollectedAt)} UTC` : ""}.
+              Aggregated figures (no log lines or client addresses){incident.factsCollectedAt ? `, collected ${formatDateTimeUtc(incident.factsCollectedAt)} UTC+7` : ""}.
             </CardDescription>
           </div>
           {editable && (
@@ -315,7 +315,7 @@ export default function IncidentEditor({
                     {view.ai && <Badge variant="info">AI-generated first draft{view.editedAt ? ", edited" : ""}</Badge>}
                   </CardTitle>
                   <CardDescription>
-                    {definition.legalBasis}. Due {formatDateTimeUtc(view.deadline)} UTC
+                    {definition.legalBasis}. Due {formatDateTimeUtc(view.deadline)} UTC+7
                     {view.status !== "submitted" ? ` (${relativeDeadline(view.deadline, now)})` : ""}: {definition.deadlineRule.toLowerCase()}.
                   </CardDescription>
                 </div>
@@ -338,7 +338,7 @@ export default function IncidentEditor({
               </div>
               {view.ai && (
                 <p className="text-xs text-muted-foreground">
-                  Written by {view.ai.provider} ({view.ai.model}) on {formatDateTimeUtc(view.ai.generatedAt)} UTC from aggregated facts. Check every
+                  Written by {view.ai.provider} ({view.ai.model}) on {formatDateTimeUtc(view.ai.generatedAt)} UTC+7 from aggregated facts. Check every
                   statement and fill the bracketed placeholders before you submit it.
                 </p>
               )}

@@ -219,11 +219,11 @@ describe('certificates page', () => {
       })
     );
     expect(html).toContain('Not issued');
-    expect(html).toContain('Caddy has none; checked 3 Oct 11:05 UTC');
+    expect(html).toContain('Caddy has none; checked 3 Oct 18:05 UTC+7');
     expect(html).toContain('Obtaining');
     // Caddy's last error, under the status.
     expect(html).toContain('presenting for challenge: expected 1 zone, got 0');
-    expect(html).toContain('title="Caddy&#x27;s error of 3 Oct 11:04 UTC"');
+    expect(html).toContain('title="Caddy&#x27;s error of 3 Oct 18:04 UTC+7"');
     expect(html).toContain('No certificate');
     expect(html).not.toContain('Not read yet');
     // The failing one counts under "Needs attention", which was "Due for renewal".

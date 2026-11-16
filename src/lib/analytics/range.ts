@@ -6,6 +6,14 @@
  */
 import { ApiValidationError } from '../api-errors';
 import { getRetentionDays } from '../clickhouse/client';
+import { DISPLAY_OFFSET_SECONDS } from '../display-time';
+
+/**
+ * MOBI-WAF: preset ranges are aligned to Vietnam time (UTC+7), so day buckets
+ * start at local midnight. Custom ranges keep their own boundaries (AI
+ * questions ask for UTC days; steps up to an hour line up with UTC+7 anyway).
+ */
+const ALIGN = DISPLAY_OFFSET_SECONDS;
 
 export const RANGE_PRESETS = {
   '1h': { seconds: 3600, step: 60 },
@@ -82,7 +90,7 @@ export function resolveRange(
   const { seconds, step } = RANGE_PRESETS[preset];
   const buckets = seconds / step;
   // The bucket holding "now" is the last one.
-  const end = (Math.floor(now / step) + 1) * step;
+  const end = (Math.floor((now + ALIGN) / step) + 1) * step - ALIGN;
   return { preset, start: end - buckets * step, end, step, buckets };
 }
 

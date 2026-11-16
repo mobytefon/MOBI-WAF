@@ -6,6 +6,7 @@
 import type { Dimension, Grouping, Metric, TopDimension } from "@/src/lib/analytics";
 import { formatBytes, formatCompact, formatDayUtc, type GoodDirection } from "@/components/ui/chart-format";
 import { OUTCOMES, type RangeKey } from "./view-state";
+import { fromZonedInputValue, toZonedInputValue, zoned } from "@/src/lib/display-time";
 
 // ── Outcomes and status classes ──────────────────────────────────────────
 
@@ -123,33 +124,32 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 
 /** "3 Oct 14:30" in UTC. */
 export function formatDateTimeShortUtc(seconds: number): string {
-  const d = new Date(seconds * 1000);
+  const d = zoned(seconds * 1000);
   return `${formatDayUtc(seconds * 1000)} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
 }
 
 /** "14:30" in UTC. */
 export function formatClockUtc(ms: number): string {
-  const d = new Date(ms);
+  const d = zoned(ms);
   return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
 }
 
 /** A request's time in the log: "11:36:02", with the day when the range spans more than a day. */
 export function formatLogTime(seconds: number, withDay: boolean): string {
-  const d = new Date(seconds * 1000);
+  const d = zoned(seconds * 1000);
   const time = `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
   return withDay ? `${formatDayUtc(seconds * 1000)} ${time}` : time;
 }
 
 /** A Unix time as the value of an <input type="datetime-local"> holding UTC. */
 export function toDateTimeInput(seconds: number): string {
-  return new Date(seconds * 1000).toISOString().slice(0, 16);
+  return toZonedInputValue(seconds);
 }
 
 /** The Unix time of an <input type="datetime-local"> value read as UTC, or null. */
 export function fromDateTimeInput(value: string): number | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
-  const ms = Date.parse(`${value}:00Z`);
-  return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+  return fromZonedInputValue(value);
 }
 
 /** A bucket width in words: "minute", "30 minutes", "3 hours", "day". */
@@ -256,7 +256,7 @@ export function csvCell(value: string | number | null): string {
 }
 
 /**
- * The chart's data as CSV: one row per bucket with its start time (UTC),
+ * The chart's data as CSV: one row per bucket with its start time (UTC+7, ISO 8601 with offset),
  * each series, the total and, when there is one, the previous period's total.
  */
 export function chartCsv(input: {
@@ -264,12 +264,12 @@ export function chartCsv(input: {
   series: readonly { label: string; values: readonly number[] }[];
   previous?: readonly (number | null)[] | null;
 }): string {
-  const header = ["Time (UTC)", ...input.series.map((s) => s.label), "Total"];
+  const header = ["Time (UTC+7)", ...input.series.map((s) => s.label), "Total"];
   if (input.previous) header.push("Previous period");
   const lines = [header.map(csvCell).join(",")];
   input.buckets.forEach((ms, i) => {
     const values = input.series.map((s) => s.values[i] ?? 0);
-    const row: (string | number | null)[] = [new Date(ms).toISOString(), ...values, values.reduce((a, b) => a + b, 0)];
+    const row: (string | number | null)[] = [zoned(ms).toISOString().replace("Z", "+07:00"), ...values, values.reduce((a, b) => a + b, 0)];
     if (input.previous) row.push(input.previous[i] ?? null);
     lines.push(row.map(csvCell).join(","));
   });
