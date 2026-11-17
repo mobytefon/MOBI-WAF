@@ -42,8 +42,8 @@ RUN (getent group ${PGID} && groupdel $(getent group ${PGID} | cut -d: -f1) || t
     (getent passwd ${PUID} && userdel $(getent passwd ${PUID} | cut -d: -f1) || true) && \
     groupadd -g ${PGID} caddy && \
     useradd -r -u ${PUID} -g caddy -m -d /home/caddy caddy && \
-    mkdir -p /data /config /logs /acme-ca /run/caddy-admin && \
-    chown -R caddy:caddy /data /config /logs /home/caddy /run/caddy-admin && \
+    mkdir -p /data /config /logs /acme-ca /run/caddy-admin /run/argus && \
+    chown -R caddy:caddy /data /config /logs /home/caddy /run/caddy-admin /run/argus && \
     chmod 0755 /run/caddy-admin && \
     chmod 0777 /acme-ca
 

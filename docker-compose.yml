@@ -202,6 +202,8 @@ services:
       - geoip-data:/usr/share/GeoIP:ro,z
       # Custom ACME CA root PEM written by web, read here for trusted_roots_pem_files (issue #192)
       - acme-ca:/acme-ca:ro
+      # Argus ML sidecar socket (docker-compose.argus.yml); stays empty without it.
+      - argus-run:/run/argus
     networks:
       - caddy-network
     healthcheck:
@@ -356,3 +358,6 @@ volumes:
   acme-ca:
   # Holds the Caddy admin API unix socket, shared between caddy and web.
   caddy-admin:
+  # Holds the Argus ML sidecar's unix socket, shared between caddy and
+  # argus-sidecar (docker-compose.argus.yml).
+  argus-run:

@@ -44,5 +44,6 @@ import (
 	_ "github.com/hslatman/caddy-crowdsec-bouncer/http"
 	_ "github.com/mholt/caddy-l4"
 	_ "github.com/mholt/caddy-ratelimit"
+	_ "github.com/mobytefon/coraza-mlcheck"
 	_ "github.com/pberkel/caddy-storage-redis"
 )

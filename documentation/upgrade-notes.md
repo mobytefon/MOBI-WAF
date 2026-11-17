@@ -2,6 +2,16 @@
 
 Pull the new images and recreate the containers with `docker compose pull && docker compose up -d`. (`docker compose restart` does not re-read `.env`.)
 
+## Unreleased: Argus Sentinel ML
+
+- **ML verdict for WAF requests (optional).**
+  - The Caddy image includes the `mlcheck` WAF action (`github.com/mobytefon/coraza-mlcheck`). It sends the request to the Argus Sentinel sidecar and writes the verdict into `TX:argus_*` variables that custom rules act on: detect only, or block with a 403.
+  - Start the sidecar with `docker-compose.argus.yml` and `ARGUS_MODEL_DIR` in `.env`, then add the rules from [argus-ml.md](argus-ml.md) to the WAF custom directives. Nothing changes without them.
+  - A new model is picked up while the stack runs: copy the files over `ARGUS_MODEL_DIR`; a model that does not load leaves the old one serving.
+  - When the sidecar is down or busy, requests go on without a verdict and the Core Rule Set decides alone.
+- **The `caddy` service mounts a new `argus-run` volume** at `/run/argus` (the sidecar's socket). Rebuild the Caddy image (`docker compose build caddy`).
+- No database migration, no REST or dashboard change.
+
 ## Unreleased: CrowdSec
 
 - **CrowdSec as a layer in front of the WAF (optional).**

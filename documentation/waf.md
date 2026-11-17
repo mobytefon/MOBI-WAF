@@ -118,6 +118,8 @@ Lines that could read files, run programs or switch the WAF off are not sent to 
 
 Operator names and other rule content are not validated: a typo such as `@contians` still reaches Caddy, which then refuses the whole config.
 
+The Caddy image also has the `mlcheck` action, which asks the optional Argus Sentinel ML sidecar to score the request; its rule sets are in [argus-ml.md](argus-ml.md).
+
 When one rule of a chain is dropped, the whole chain is dropped. Rules stored before these checks existed are not deleted: they are left out of the generated config and reported in the web container log (`[waf] <source>: N custom directive line(s) are not sent to Caddy…`). Saving a proxy host or the global WAF settings (dashboard or `PUT /api/v1/settings/waf`) is rejected only for lines the save newly drops, including turning **Load OWASP CRS** off while a rule reads an `@owasp_crs/` file, so a stored rule does not block unrelated edits. A merge-mode host that inherits the global CRS setting is not re-checked when the global CRS is turned off; its `@owasp_crs/` rules are then only reported in the log.
 
 ## REST API
