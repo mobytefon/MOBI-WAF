@@ -47,10 +47,10 @@
 services:
   argus-sidecar:
     container_name: ingressi-argus
-    image: ghcr.io/mobytefon/argus-sidecar:${ARGUS_SIDECAR_VERSION:-v0.2.1}
+    image: ghcr.io/mobytefon/argus-sidecar:${ARGUS_SIDECAR_VERSION:-v0.2.2}
     # Used when the image cannot be pulled, or with --build.
     build:
-      context: https://github.com/mobytefon/argus-sidecar.git#${ARGUS_SIDECAR_VERSION:-v0.2.1}
+      context: https://github.com/mobytefon/argus-sidecar.git#${ARGUS_SIDECAR_VERSION:-v0.2.2}
     restart: unless-stopped
     user: "${ARGUS_USER:-0:0}"
     # The sidecar only listens on the unix socket; it needs no network.
@@ -72,6 +72,9 @@ services:
       ARGUS_RELOAD_INTERVAL_S: ${ARGUS_RELOAD_INTERVAL_S:-5}
       ORT_INTRA_THREADS: ${ORT_INTRA_THREADS:-1}
       LOG_LEVEL: ${ARGUS_LOG_LEVEL:-INFO}
+      # One log line per ML check (docker compose logs argus-sidecar): all,
+      # attack (attack verdicts only) or off.
+      ARGUS_LOG_REQUESTS: ${ARGUS_LOG_REQUESTS:-all}
     volumes:
       - ${ARGUS_MODEL_DIR:?ERROR - ARGUS_MODEL_DIR is required}:/model:ro
       - argus-run:/run/argus

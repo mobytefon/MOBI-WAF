@@ -74,7 +74,7 @@ describe('Argus ML integration', () => {
   it('runs the sidecar as the same user as caddy (0:0, rootless Docker)', () => {
     expect(service('docker-compose.yml', 'caddy')).toContain('user: "0:0"');
     expect(service('docker-compose.argus.yml', 'argus-sidecar')).toContain('user: "${ARGUS_USER:-0:0}"');
-    expect(read('docker-compose.argus.yml')).toMatch(/argus-sidecar:\$\{ARGUS_SIDECAR_VERSION:-v0\.2\.1\}/);
+    expect(read('docker-compose.argus.yml')).toMatch(/argus-sidecar:\$\{ARGUS_SIDECAR_VERSION:-v0\.2\.2\}/);
   });
 
   it('keeps the sidecar concurrency default equal to the mlcheck default (16)', () => {

@@ -14,7 +14,7 @@ Nothing changes until you add the rules below to the WAF custom directives.
 1. Put the model in a directory of its own on the server, as the user that runs Docker. The released bundle is in the `model/` directory of [mobytefon/argus-sidecar](https://github.com/mobytefon/argus-sidecar/tree/main/model): `model.onnx`, `tokenizer.json`, `config.json`, `preprocess.py` and `inference_cpu.py`.
 
    ```sh
-   git clone --depth 1 --branch v0.2.1 https://github.com/mobytefon/argus-sidecar.git /tmp/argus-sidecar
+   git clone --depth 1 --branch v0.2.2 https://github.com/mobytefon/argus-sidecar.git /tmp/argus-sidecar
    mkdir -p ~/argus-model
    cp /tmp/argus-sidecar/model/{model.onnx,tokenizer.json,config.json,preprocess.py,inference_cpu.py} ~/argus-model/
    # Rootful Docker only (Docker Desktop, WSL with Docker Desktop): make it readable by everyone
@@ -34,7 +34,7 @@ Nothing changes until you add the rules below to the WAF custom directives.
    docker compose logs argus-sidecar | grep listening
    ```
 
-   The sidecar image is `ghcr.io/mobytefon/argus-sidecar:v0.2.1` (`ARGUS_SIDECAR_VERSION` picks another tag). If it cannot be pulled, Compose builds it from the repository.
+   The sidecar image is `ghcr.io/mobytefon/argus-sidecar:v0.2.2` (`ARGUS_SIDECAR_VERSION` picks another tag). If it cannot be pulled, Compose builds it from the repository.
 
 4. Turn the WAF on with **Load OWASP CRS** (the CRS turns on request-body access, which `mlcheck` needs), then add the **detect** rules below to the global WAF custom directives, or to one host's.
 
@@ -118,6 +118,15 @@ After changing `ARGUS_USER` on an existing installation, the old socket belongs 
 | `ARGUS_CPUS`, `ARGUS_MEM_LIMIT` | 2, 512m | sidecar container limits |
 
 Keep `ARGUS_MAX_INFLIGHT` at or below `ARGUS_MAX_CONCURRENT_RPCS`, so extra load is shed in Caddy before it reaches the sidecar. A sidecar that refuses a request because it is busy is not counted as failing: only real failures (10 in a row) switch ML off for 5 seconds. Caddy's settings are environment variables of the `caddy` service; set them in a `docker-compose.override.yml` if you change them (list that file in `COMPOSE_FILE` too when you set `COMPOSE_FILE`; the l4-port-manager always includes it when it recreates `caddy`).
+
+The sidecar logs every check (`ARGUS_LOG_REQUESTS=all`, the default; `attack` keeps only attack verdicts, `off` none):
+
+```
+docker compose logs -f argus-sidecar
+... INFO argus_sidecar.requests check verdict=attack attack_prob=0.999998 threshold=0.998175 ms=0.43 method=GET uri="/products?id=42' UNION SELECT username,password FROM users--" body_bytes=0 run=D_c64
+```
+
+Each line has the verdict, `attack_prob`, the threshold, the inference time, the method, the URI (cut at 200 characters) and the body size; never headers, cookies or the body. The log is rotated (3 × 10 MB). The sidecar does not know the host name or the WAF event id: to match a line with a Security event, use the time and the URI.
 
 Caddy logs a summary of `mlcheck` every minute (`mlcheck metrics summary calls=… ok=… failures=… latency_quantiles=…`): `docker compose logs caddy | grep mlcheck`.
 
