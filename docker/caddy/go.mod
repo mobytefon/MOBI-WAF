@@ -33,7 +33,7 @@ require (
 	github.com/hslatman/caddy-crowdsec-bouncer v0.15.0
 	github.com/mholt/caddy-l4 v0.1.2
 	github.com/mholt/caddy-ratelimit v0.1.1-0.20260612195517-5625512f24f6
-	github.com/mobytefon/coraza-mlcheck v0.2.0
+	github.com/mobytefon/coraza-mlcheck v0.2.1
 	github.com/pberkel/caddy-storage-redis v1.9.0
 )
 
