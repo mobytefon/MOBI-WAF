@@ -16,8 +16,10 @@
 # Rootless Docker: like web and caddy, the sidecar runs as 0:0, which is the
 # host user running dockerd. It reads a model directory that user owns (no
 # chown, 0700 is fine) and creates the socket as that user, so caddy (also
-# 0:0) can open it. It keeps no capability at all; with rootful Docker 0:0 is
-# real root, still without capabilities, network or a writable filesystem.
+# 0:0) can open it. It keeps no capability at all; with rootful Docker
+# (Docker Desktop too) 0:0 is real root, still without capabilities, network
+# or a writable filesystem, so it reads only files readable by everyone:
+# chmod 0755 the model directory and 0644 its files there.
 # ARGUS_USER changes it, and must then match caddy's user.
 #
 # The sidecar (github.com/mobytefon/argus-sidecar) answers gRPC on a unix

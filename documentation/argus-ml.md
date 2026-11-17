@@ -17,9 +17,11 @@ Nothing changes until you add the rules below to the WAF custom directives.
    git clone --depth 1 --branch v0.2.1 https://github.com/mobytefon/argus-sidecar.git /tmp/argus-sidecar
    mkdir -p ~/argus-model
    cp /tmp/argus-sidecar/model/{model.onnx,tokenizer.json,config.json,preprocess.py,inference_cpu.py} ~/argus-model/
+   # Rootful Docker only (Docker Desktop, WSL with Docker Desktop): make it readable by everyone
+   chmod 0755 ~/argus-model && chmod 0644 ~/argus-model/*
    ```
 
-   The two `.py` files are run by the sidecar: only use files from a source you trust.
+   The two `.py` files are run by the sidecar: only use files from a source you trust. Under rootless Docker the directory may stay private (`0700`); see [Users, socket and rootless Docker](#users-socket-and-rootless-docker).
 
 2. In `.env`, set `ARGUS_MODEL_DIR` to that directory's absolute path (`ARGUS_MODEL_DIR=/home/<user>/argus-model`), and add `docker-compose.argus.yml` to `COMPOSE_FILE` (for example `COMPOSE_FILE=docker-compose.yml:docker-compose.argus.yml`, with any other overlays you use).
 
@@ -99,7 +101,7 @@ The sidecar runs as `0:0`, like the `web` and `caddy` services in `docker-compos
 - The socket `/run/argus/argus.sock` (mode `0660`) is created by that user in the `argus-run` volume; `caddy`, the same user, opens it. Nothing else mounts the volume, and the sidecar has no network.
 - The sidecar drops every capability and runs on a read-only filesystem, so it relies on file ownership alone. `/run/argus` is mode `1777` in both images, so a fresh volume works whichever container mounts it first.
 
-With rootful Docker, `0:0` is real root on the host (still with no capability, no network and a read-only filesystem), as it is for `web` and `caddy`. `ARGUS_USER` changes the sidecar's user; it must then be the user `caddy` runs as, or Caddy cannot open the socket.
+With rootful Docker (Docker Desktop and its WSL integration included), `0:0` is real root on the host, as it is for `web` and `caddy`, but the sidecar still has no capability, no network and a read-only filesystem. Root without capabilities cannot read another user's private files: the model directory must then be readable by everyone (`chmod 0755` on the directory, `0644` on the files) or belong to root. `ARGUS_USER` changes the sidecar's user; it must then be the user `caddy` runs as, or Caddy cannot open the socket.
 
 After changing `ARGUS_USER` on an existing installation, the old socket belongs to the other user and cannot be replaced: stop `caddy` and `argus-sidecar`, run `docker volume rm <project>_argus-run` once, and start them again.
 
@@ -127,7 +129,7 @@ The model scores the method, the URI (first 512 characters), `User-Agent`, `Refe
 
 | Symptom | Cause |
 |---|---|
-| `argus-sidecar` restarts, log `Permission denied` on `/model/…` | `ARGUS_MODEL_DIR` is not readable by the sidecar's user (see above), or is not an absolute path |
+| `argus-sidecar` restarts, log `Permission denied` on `/model/…` | `ARGUS_MODEL_DIR` is not readable by the sidecar's user, or is not an absolute path. With rootful Docker: `chmod 0755` the directory and `0644` the files (see above) |
 | log `refusing to replace a non-socket path` / `Permission denied` on `/run/argus/argus.sock` | a socket or file left by another user in the volume: remove the volume once (see above) |
 | `Argus ML unavailable` with `reason=rpc_error` | the sidecar is not running or Caddy cannot open the socket (different users) |
 | `reason=overload` | more requests at once than `ARGUS_MAX_INFLIGHT`: raise it together with `ARGUS_MAX_CONCURRENT_RPCS`, `ARGUS_WORKERS` and `ARGUS_CPUS` |
