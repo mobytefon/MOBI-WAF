@@ -49,6 +49,7 @@ github.com/mholt/caddy-l4
 github.com/mholt/caddy-ratelimit
 github.com/fuomag9/caddy-blocker-plugin
 github.com/corazawaf/coraza-caddy/v2
+github.com/mobytefon/coraza-mlcheck
 github.com/pberkel/caddy-storage-redis
 github.com/hslatman/caddy-crowdsec-bouncer/http=github.com/hslatman/caddy-crowdsec-bouncer
 MODULES

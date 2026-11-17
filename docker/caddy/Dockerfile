@@ -42,10 +42,15 @@ RUN (getent group ${PGID} && groupdel $(getent group ${PGID} | cut -d: -f1) || t
     (getent passwd ${PUID} && userdel $(getent passwd ${PUID} | cut -d: -f1) || true) && \
     groupadd -g ${PGID} caddy && \
     useradd -r -u ${PUID} -g caddy -m -d /home/caddy caddy && \
-    mkdir -p /data /config /logs /acme-ca /run/caddy-admin && \
+    mkdir -p /data /config /logs /acme-ca /run/caddy-admin /run/argus && \
     chown -R caddy:caddy /data /config /logs /home/caddy /run/caddy-admin && \
     chmod 0755 /run/caddy-admin && \
-    chmod 0777 /acme-ca
+    chmod 0777 /acme-ca && \
+    # Argus ML socket directory (argus-run volume): world-writable with the
+    # sticky bit, as in the argus-sidecar image, so a fresh volume works
+    # whichever container mounts it first; the sidecar drops every
+    # capability and relies on no owner.
+    chmod 1777 /run/argus
 
 COPY --chown=caddy:caddy docker/caddy/Caddyfile /etc/caddy/Caddyfile
 COPY --chmod=0755 docker/caddy/entrypoint.sh /usr/local/bin/caddy-entrypoint.sh
