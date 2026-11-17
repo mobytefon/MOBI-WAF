@@ -46,7 +46,10 @@ describe('Argus ML integration', () => {
     expect(read('docker/caddy/go.mod')).toMatch(/\n\tgithub\.com\/mobytefon\/coraza-mlcheck v\d+\.\d+\.\d+\n/);
     expect(read('docker/caddy/tools.go')).toContain('_ "github.com/mobytefon/coraza-mlcheck"');
     expect(read('docker/caddy/build.sh')).toMatch(/\ngithub\.com\/mobytefon\/coraza-mlcheck\n/);
-    expect(read('docker/caddy/Dockerfile')).toMatch(/mkdir -p [^\n]*\/run\/argus/);
+    const dockerfile = read('docker/caddy/Dockerfile');
+    expect(dockerfile).toMatch(/mkdir -p [^\n]*\/run\/argus/);
+    // Either container may create the volume first; the sidecar has no capability.
+    expect(dockerfile).toContain('chmod 1777 /run/argus');
   });
 
   it('mounts the socket volume in caddy from docker-compose.yml itself', () => {
@@ -66,6 +69,12 @@ describe('Argus ML integration', () => {
     expect(sidecar).toContain('- ${ARGUS_MODEL_DIR:?ERROR - ARGUS_MODEL_DIR is required}:/model:ro');
     expect(sidecar).toContain('- argus-run:/run/argus');
     expect(sidecar).toContain('ARGUS_SOCKET: /run/argus/argus.sock');
+  });
+
+  it('runs the sidecar as the same user as caddy (0:0, rootless Docker)', () => {
+    expect(service('docker-compose.yml', 'caddy')).toContain('user: "0:0"');
+    expect(service('docker-compose.argus.yml', 'argus-sidecar')).toContain('user: "${ARGUS_USER:-0:0}"');
+    expect(read('docker-compose.argus.yml')).toMatch(/argus-sidecar:\$\{ARGUS_SIDECAR_VERSION:-v0\.2\.1\}/);
   });
 
   it('keeps the sidecar concurrency default equal to the mlcheck default (16)', () => {

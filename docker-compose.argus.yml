@@ -8,10 +8,17 @@
 # and run docker compose as usual; other overrides such as
 # docker-compose.crowdsec.yml can be listed too). Needs in .env:
 #
-#   ARGUS_MODEL_DIR=/opt/argus/model   host directory holding model.onnx,
-#                                      tokenizer.json, config.json,
-#                                      preprocess.py and inference_cpu.py,
-#                                      readable by UID 10000
+#   ARGUS_MODEL_DIR=/home/<user>/argus-model   host directory holding
+#       model.onnx, tokenizer.json, config.json, preprocess.py and
+#       inference_cpu.py (the released bundle is in the model/ directory of
+#       github.com/mobytefon/argus-sidecar)
+#
+# Rootless Docker: like web and caddy, the sidecar runs as 0:0, which is the
+# host user running dockerd. It reads a model directory that user owns (no
+# chown, 0700 is fine) and creates the socket as that user, so caddy (also
+# 0:0) can open it. It keeps no capability at all; with rootful Docker 0:0 is
+# real root, still without capabilities, network or a writable filesystem.
+# ARGUS_USER changes it, and must then match caddy's user.
 #
 # The sidecar (github.com/mobytefon/argus-sidecar) answers gRPC on a unix
 # socket in the argus-run volume, which docker-compose.yml already mounts in
@@ -21,7 +28,8 @@
 # documentation/argus-ml.md are added to the WAF custom directives; when the
 # sidecar is down or busy, requests go on without an ML verdict (fail open).
 #
-# New model: copy the new files over ARGUS_MODEL_DIR while everything runs.
+# New model: copy all five new files over ARGUS_MODEL_DIR (in one command)
+# while everything runs.
 # The sidecar notices the change, waits until the files stop changing, loads
 # and checks the new model and only then switches to it; a model that does
 # not load leaves the old one serving. See documentation/argus-ml.md.
@@ -37,11 +45,12 @@
 services:
   argus-sidecar:
     container_name: ingressi-argus
-    image: ghcr.io/mobytefon/argus-sidecar:${ARGUS_SIDECAR_VERSION:-v0.2.0}
+    image: ghcr.io/mobytefon/argus-sidecar:${ARGUS_SIDECAR_VERSION:-v0.2.1}
     # Used when the image cannot be pulled, or with --build.
     build:
-      context: https://github.com/mobytefon/argus-sidecar.git#${ARGUS_SIDECAR_VERSION:-v0.2.0}
+      context: https://github.com/mobytefon/argus-sidecar.git#${ARGUS_SIDECAR_VERSION:-v0.2.1}
     restart: unless-stopped
+    user: "${ARGUS_USER:-0:0}"
     # The sidecar only listens on the unix socket; it needs no network.
     network_mode: none
     read_only: true

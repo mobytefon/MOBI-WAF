@@ -11,17 +11,17 @@ Nothing changes until you add the rules below to the WAF custom directives.
 
 ## Setting it up
 
-1. Put the model on the server, in a directory that UID 10000 can read. It must hold `model.onnx`, `tokenizer.json`, `config.json`, `preprocess.py` and `inference_cpu.py`:
+1. Put the model in a directory of its own on the server, as the user that runs Docker. The released bundle is in the `model/` directory of [mobytefon/argus-sidecar](https://github.com/mobytefon/argus-sidecar/tree/main/model): `model.onnx`, `tokenizer.json`, `config.json`, `preprocess.py` and `inference_cpu.py`.
 
    ```sh
-   sudo install -d -m 0755 /opt/argus/model
-   sudo cp model.onnx tokenizer.json config.json preprocess.py inference_cpu.py /opt/argus/model/
-   sudo chmod 0644 /opt/argus/model/*
+   git clone --depth 1 --branch v0.2.1 https://github.com/mobytefon/argus-sidecar.git /tmp/argus-sidecar
+   mkdir -p ~/argus-model
+   cp /tmp/argus-sidecar/model/{model.onnx,tokenizer.json,config.json,preprocess.py,inference_cpu.py} ~/argus-model/
    ```
 
    The two `.py` files are run by the sidecar: only use files from a source you trust.
 
-2. In `.env`, set `ARGUS_MODEL_DIR=/opt/argus/model`, and add `docker-compose.argus.yml` to `COMPOSE_FILE` (for example `COMPOSE_FILE=docker-compose.yml:docker-compose.argus.yml`, with any other overlays you use).
+2. In `.env`, set `ARGUS_MODEL_DIR` to that directory's absolute path (`ARGUS_MODEL_DIR=/home/<user>/argus-model`), and add `docker-compose.argus.yml` to `COMPOSE_FILE` (for example `COMPOSE_FILE=docker-compose.yml:docker-compose.argus.yml`, with any other overlays you use).
 
 3. Rebuild Caddy (its image now includes `mlcheck`) and start the sidecar:
 
@@ -32,7 +32,7 @@ Nothing changes until you add the rules below to the WAF custom directives.
    docker compose logs argus-sidecar | grep listening
    ```
 
-   The sidecar image is `ghcr.io/mobytefon/argus-sidecar:v0.2.0` (`ARGUS_SIDECAR_VERSION` picks another tag). If it cannot be pulled, Compose builds it from the repository.
+   The sidecar image is `ghcr.io/mobytefon/argus-sidecar:v0.2.1` (`ARGUS_SIDECAR_VERSION` picks another tag). If it cannot be pulled, Compose builds it from the repository.
 
 4. Turn the WAF on with **Load OWASP CRS** (the CRS turns on request-body access, which `mlcheck` needs), then add the **detect** rules below to the global WAF custom directives, or to one host's.
 
@@ -77,11 +77,10 @@ Block on `@streq 0`, never on the score: Coraza's `@gt` compares integers, which
 
 ## Replacing the model while it runs
 
-Copy the new files over `ARGUS_MODEL_DIR`. Nothing needs restarting:
+Copy all five new files over `ARGUS_MODEL_DIR`, in one command. Nothing needs restarting:
 
 ```sh
-sudo cp new/model.onnx new/tokenizer.json new/config.json new/preprocess.py new/inference_cpu.py /opt/argus/model/
-sudo chmod 0644 /opt/argus/model/*
+cp new/{model.onnx,tokenizer.json,config.json,preprocess.py,inference_cpu.py} ~/argus-model/
 docker compose logs -f argus-sidecar      # "model reloaded version=… run=… threshold=…"
 ```
 
@@ -89,7 +88,22 @@ docker compose logs -f argus-sidecar      # "model reloaded version=… run=… 
 - A model that does not load (a file copied halfway, a model with other inputs, a `config.json` without the threshold preset you use) leaves the old model serving, and the log says why. The same files are not tried again; copy them again to retry.
 - To load at once instead of waiting: `docker compose kill -s HUP argus-sidecar`.
 - The threshold preset (`ARGUS_THRESHOLD`, `fpr0.1%` by default) is read again from the new `config.json`, so a model trained with new thresholds brings them along.
+- Copy the files together: copied one by one, more than 5 seconds apart, the sidecar can load a mix of old and new files for a moment.
 - Keep the previous model in another directory: going back is copying it over again.
+
+## Users, socket and rootless Docker
+
+The sidecar runs as `0:0`, like the `web` and `caddy` services in `docker-compose.yml`. Under rootless Docker that is the host user running `dockerd`:
+
+- The model directory only has to belong to that user (a directory in its home, mode `0700`, works). No `chown` to another UID, and files copied in by that user are read as they are.
+- The socket `/run/argus/argus.sock` (mode `0660`) is created by that user in the `argus-run` volume; `caddy`, the same user, opens it. Nothing else mounts the volume, and the sidecar has no network.
+- The sidecar drops every capability and runs on a read-only filesystem, so it relies on file ownership alone. `/run/argus` is mode `1777` in both images, so a fresh volume works whichever container mounts it first.
+
+With rootful Docker, `0:0` is real root on the host (still with no capability, no network and a read-only filesystem), as it is for `web` and `caddy`. `ARGUS_USER` changes the sidecar's user; it must then be the user `caddy` runs as, or Caddy cannot open the socket.
+
+After changing `ARGUS_USER` on an existing installation, the old socket belongs to the other user and cannot be replaced: stop `caddy` and `argus-sidecar`, run `docker volume rm <project>_argus-run` once, and start them again.
+
+`ARGUS_CPUS` and `ARGUS_MEM_LIMIT` are enforced by rootless Docker only when the cgroup v2 controllers are delegated to the user (`docker info` warns when they are not); otherwise they are ignored.
 
 ## Capacity and limits
 
@@ -101,13 +115,24 @@ docker compose logs -f argus-sidecar      # "model reloaded version=… run=… 
 | `ARGUS_TIMEOUT_MS` | 50 | Caddy's budget per request, queueing included |
 | `ARGUS_CPUS`, `ARGUS_MEM_LIMIT` | 2, 512m | sidecar container limits |
 
-Keep `ARGUS_MAX_INFLIGHT` at or below `ARGUS_MAX_CONCURRENT_RPCS`, so extra load is shed in Caddy before it reaches the sidecar. A sidecar that refuses a request because it is busy is not counted as failing: only real failures (10 in a row) switch ML off for 5 seconds. Caddy's settings are environment variables of the `caddy` service; set them in a `docker-compose.override.yml` if you change them.
+Keep `ARGUS_MAX_INFLIGHT` at or below `ARGUS_MAX_CONCURRENT_RPCS`, so extra load is shed in Caddy before it reaches the sidecar. A sidecar that refuses a request because it is busy is not counted as failing: only real failures (10 in a row) switch ML off for 5 seconds. Caddy's settings are environment variables of the `caddy` service; set them in a `docker-compose.override.yml` if you change them (list that file in `COMPOSE_FILE` too when you set `COMPOSE_FILE`; the l4-port-manager always includes it when it recreates `caddy`).
 
 Caddy logs a summary of `mlcheck` every minute (`mlcheck metrics summary calls=… ok=… failures=… latency_quantiles=…`): `docker compose logs caddy | grep mlcheck`.
 
 ## What the model does not see
 
 The model scores the method, the URI (first 512 characters), `User-Agent`, `Referer`, `Cookie` (160 each) and the body (first 512 characters after URL decoding). A payload in another header, after those limits, or encoded otherwise (base64, HTML entities, three or more URL encodings) is not seen, and it was trained on public data sets: apostrophes and braces in legitimate requests (a name like O'Brien, a password, GraphQL) can score high. Run detect-only on real traffic first, check the detections in **Security events** (filter on `argus-sentinel`), and raise or lower the threshold before blocking. The CRS stays the main defence.
+
+## Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| `argus-sidecar` restarts, log `Permission denied` on `/model/…` | `ARGUS_MODEL_DIR` is not readable by the sidecar's user (see above), or is not an absolute path |
+| log `refusing to replace a non-socket path` / `Permission denied` on `/run/argus/argus.sock` | a socket or file left by another user in the volume: remove the volume once (see above) |
+| `Argus ML unavailable` with `reason=rpc_error` | the sidecar is not running or Caddy cannot open the socket (different users) |
+| `reason=overload` | more requests at once than `ARGUS_MAX_INFLIGHT`: raise it together with `ARGUS_MAX_CONCURRENT_RPCS`, `ARGUS_WORKERS` and `ARGUS_CPUS` |
+| `reason=circuit_open` | 10 real failures in a row; ML is skipped for 5 seconds, then retried |
+| `model reload failed, keeping the running model` | the new files do not load; the message says why, and the old model keeps serving |
 
 ## Turning it off
 
