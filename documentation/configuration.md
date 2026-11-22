@@ -57,6 +57,7 @@ The web container is configured with environment variables. Copy `.env.example` 
 | `CLICKHOUSE_PASSWORD` | ClickHouse password (`openssl rand -base64 32`). Required when the `clickhouse` profile is active. | None | No (required if analytics enabled) |
 | `CLICKHOUSE_DB` | ClickHouse database name | `analytics` | No |
 | `CLICKHOUSE_RETENTION_DAYS` | Days analytics events are kept (see [Analytics](analytics.md#storage-and-retention)) | `30` | No |
+| `CLICKHOUSE_CLUSTER` | Central node only: the ClickHouse cluster (in `remote_servers`) whose nodes' events the dashboard reads, through Distributed tables (see [Centralised analytics](clickhouse-cluster.md)). Set by `docker-compose.clickhouse-central.yml` | None (this node's events only) | No |
 
 With the stock `docker-compose.yml`, the web container only receives the variables listed in the `web` service's `environment`; a value in `.env` for any other variable in this table has no effect until you add it there (for example `INSTANCE_MODE: ${INSTANCE_MODE:-}`; an empty value leaves the mode to the Instance sync page). Give numeric variables their documented default rather than an empty one, e.g. `LOGIN_MAX_ATTEMPTS: ${LOGIN_MAX_ATTEMPTS:-5}`: an empty value is read as 0.
 

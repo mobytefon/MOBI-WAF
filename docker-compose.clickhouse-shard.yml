@@ -1,0 +1,24 @@
+# Centralised analytics, the other nodes (documentation/clickhouse-cluster.md).
+# An override of docker-compose.yml for each node whose events the central
+# node reads; it changes nothing unless you name it:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.clickhouse-shard.yml up -d
+#
+# (or COMPOSE_FILE=docker-compose.yml:docker-compose.clickhouse-shard.yml in
+# .env). Needs in .env, besides the usual ClickHouse variables (the same
+# CLICKHOUSE_USER, CLICKHOUSE_PASSWORD and CLICKHOUSE_DB as the central node):
+#
+#   CLICKHOUSE_SHARD_BIND=10.0.0.12   this node's private address
+#
+# Publishes ClickHouse's native port (9000) on that address only, for the
+# central node's Distributed tables. Allow only the central node's address
+# to reach it (firewall; with rootless Docker, ufw rules apply to published
+# ports); the traffic is not encrypted, so keep it on a private network.
+
+services:
+  clickhouse:
+    # The same ClickHouse version on every node: set CLICKHOUSE_IMAGE to a
+    # pinned tag (e.g. clickhouse/clickhouse-server:26.10.4-alpine) everywhere.
+    image: ${CLICKHOUSE_IMAGE:-clickhouse/clickhouse-server:latest-alpine}
+    ports:
+      - "${CLICKHOUSE_SHARD_BIND:?ERROR - CLICKHOUSE_SHARD_BIND is required}:9000:9000"
