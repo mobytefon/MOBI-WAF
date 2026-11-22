@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<!--
+  The analytics cluster for centralised analytics (documentation/clickhouse-cluster.md).
+  Mounted on the central node only, by docker-compose.clickhouse-central.yml.
+
+  One shard per node, one replica per shard: every node keeps its own events,
+  and the central node's Distributed tables (analytics_cluster.*) read all of
+  them. The first shard is this server itself; the others are the ClickHouse
+  native ports (9000) that docker-compose.clickhouse-shard.yml publishes on the
+  other nodes. No secrets here: user, password and hosts come from the
+  container's environment. All nodes need the same CLICKHOUSE_USER,
+  CLICKHOUSE_PASSWORD and CLICKHOUSE_DB.
+
+  For more or fewer nodes, add or remove <shard> blocks (and their
+  CH_SHARD<N>_HOST variables in the overlay).
+-->
+<clickhouse>
+    <remote_servers>
+        <waf_cluster>
+            <shard>
+                <replica>
+                    <host>localhost</host>
+                    <port>9000</port>
+                    <user from_env="CLICKHOUSE_USER"/>
+                    <password from_env="CLICKHOUSE_PASSWORD"/>
+                </replica>
+            </shard>
+            <shard>
+                <replica>
+                    <host from_env="CH_SHARD2_HOST"/>
+                    <port>9000</port>
+                    <user from_env="CLICKHOUSE_USER"/>
+                    <password from_env="CLICKHOUSE_PASSWORD"/>
+                </replica>
+            </shard>
+            <shard>
+                <replica>
+                    <host from_env="CH_SHARD3_HOST"/>
+                    <port>9000</port>
+                    <user from_env="CLICKHOUSE_USER"/>
+                    <password from_env="CLICKHOUSE_PASSWORD"/>
+                </replica>
+            </shard>
+        </waf_cluster>
+    </remote_servers>
+</clickhouse>

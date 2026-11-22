@@ -1,0 +1,33 @@
+# Centralised analytics, central node (documentation/clickhouse-cluster.md).
+# An override of docker-compose.yml for the ONE node whose dashboard shows
+# the events of every node; it changes nothing unless you name it:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.clickhouse-central.yml up -d
+#
+# (or COMPOSE_FILE=docker-compose.yml:docker-compose.clickhouse-central.yml
+# in .env). Needs in .env, besides the usual ClickHouse variables (the same
+# CLICKHOUSE_USER, CLICKHOUSE_PASSWORD and CLICKHOUSE_DB on every node):
+#
+#   CH_SHARD2_HOST=10.0.0.12   private address of node 2's ClickHouse
+#   CH_SHARD3_HOST=10.0.0.13   private address of node 3's ClickHouse
+#
+# Nodes 2 and 3 run docker-compose.clickhouse-shard.yml. Every node keeps
+# parsing its own logs into its own ClickHouse; this node also creates the
+# Distributed tables analytics_cluster.traffic_events / waf_events and reads
+# its analytics through them. A node that cannot be reached is left out of
+# the figures rather than failing the page.
+
+services:
+  web:
+    environment:
+      CLICKHOUSE_CLUSTER: waf_cluster
+
+  clickhouse:
+    # The same ClickHouse version on every node: set CLICKHOUSE_IMAGE to a
+    # pinned tag (e.g. clickhouse/clickhouse-server:26.10.4-alpine) everywhere.
+    image: ${CLICKHOUSE_IMAGE:-clickhouse/clickhouse-server:latest-alpine}
+    environment:
+      CH_SHARD2_HOST: ${CH_SHARD2_HOST:?ERROR - CH_SHARD2_HOST is required}
+      CH_SHARD3_HOST: ${CH_SHARD3_HOST:?ERROR - CH_SHARD3_HOST is required}
+    volumes:
+      - ./docker/clickhouse/cluster/remote-servers.xml:/etc/clickhouse-server/config.d/remote-servers.xml:ro

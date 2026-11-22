@@ -6,6 +6,8 @@ With access logging on and ClickHouse enabled (see [Enabling analytics](#enablin
 
 Analytics uses a bundled ClickHouse instance for storing and querying traffic events and WAF events. Data is retained for **30 days** by default via ClickHouse's TTL. Change the window with the `CLICKHOUSE_RETENTION_DAYS` environment variable: at the next start, the existing tables move to the new TTL and expired data is deleted.
 
+Several nodes can each keep their own events and still be read together from one dashboard: see [Centralised analytics](clickhouse-cluster.md), and [Production deployment](production-deployment.md) for running the nodes.
+
 ### Enabling analytics (recommended)
 
 Analytics is enabled via the `clickhouse` Docker Compose profile. The default `.env.example` has it on:

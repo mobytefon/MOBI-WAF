@@ -1,4 +1,5 @@
 import { createClient, type ClickHouseClient } from '@clickhouse/client';
+import { clusterQueryDatabase, clusterReadSettings, ensureDistributedTables, isClusterEnabled } from './cluster';
 
 // ── Configuration ───────────────────────────────────────────────────────────
 
@@ -44,8 +45,11 @@ export function getRetentionDays(): number {
 // ── Singleton client ────────────────────────────────────────────────────────
 
 let client: ClickHouseClient | null = null;
+// Read client over the Distributed tables, when CLICKHOUSE_CLUSTER is set (./cluster.ts).
+let readClient: ClickHouseClient | null = null;
 
-export function getClient(): ClickHouseClient {
+/** Client on this node's own tables: inserts and schema set-up. */
+function getWriteClient(): ClickHouseClient {
   if (!client) {
     client = createClient({
       url: CH_URL,
@@ -63,6 +67,22 @@ export function getClient(): ClickHouseClient {
     });
   }
   return client;
+}
+
+/** Client for read queries: the whole cluster when CLICKHOUSE_CLUSTER is set, else this node's tables. */
+export function getClient(): ClickHouseClient {
+  if (!isClusterEnabled()) return getWriteClient();
+  if (!readClient) {
+    readClient = createClient({
+      url: CH_URL,
+      username: CH_USER,
+      password: CH_PASS,
+      database: clusterQueryDatabase(CH_DB),
+      clickhouse_settings: clusterReadSettings(),
+      log: { level: 127 },
+    });
+  }
+  return readClient;
 }
 
 // ── Table creation ──────────────────────────────────────────────────────────
@@ -267,7 +287,7 @@ export async function initClickHouse(): Promise<void> {
     console.log('ClickHouse analytics disabled (CLICKHOUSE_PASSWORD not set)');
     return;
   }
-  const ch = getClient();
+  const ch = getWriteClient();
   await ch.command({ query: `CREATE DATABASE IF NOT EXISTS ${CH_DB}` });
   await ch.command({ query: TRAFFIC_EVENTS_DDL });
   await ch.command({ query: WAF_EVENTS_DDL });
@@ -278,9 +298,14 @@ export async function initClickHouse(): Promise<void> {
     await ensureRetentionTtl(ch, table);
   }
   await dropDisabledSystemLogs(ch);
+  await ensureDistributedTables(ch, CH_DB);
 }
 
 export async function closeClickHouse(): Promise<void> {
+  if (readClient) {
+    await readClient.close();
+    readClient = null;
+  }
   if (client) {
     await client.close();
     client = null;
@@ -335,7 +360,7 @@ export interface WafEventRow {
 
 export async function insertTrafficEvents(rows: TrafficEventRow[]): Promise<void> {
   if (!analyticsConfigured || rows.length === 0) return;
-  const ch = getClient();
+  const ch = getWriteClient();
   // Convert unix timestamp to ClickHouse DateTime string
   const values = rows.map(r => ({
     ...r,
@@ -348,7 +373,7 @@ export async function insertTrafficEvents(rows: TrafficEventRow[]): Promise<void
 
 export async function insertWafEvents(rows: WafEventRow[]): Promise<void> {
   if (!analyticsConfigured || rows.length === 0) return;
-  const ch = getClient();
+  const ch = getWriteClient();
   const values = rows.map(r => ({
     ...r,
     ts: new Date(r.ts * 1000).toISOString().replace('T', ' ').slice(0, 19),
